@@ -1,0 +1,31 @@
+{
+  "id": "mac-temperatures",
+  "name": {
+    "fr": "Temp\u00e9ratures du Mac",
+    "en": "Mac temperatures"
+  },
+  "version": "1.0.0",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "Temp\u00e9ratures moyennes CPU et GPU mesur\u00e9es par macmon",
+    "en": "Measured average CPU and GPU temperatures through macmon"
+  },
+  "category": "system",
+  "icon": "thermometer",
+  "minSize": [
+    8,
+    4
+  ],
+  "defaultSize": [
+    16,
+    6
+  ],
+  "subscriptions": [
+    "system"
+  ],
+  "commands": [],
+  "permissions": {
+    "network": []
+  }
+}
