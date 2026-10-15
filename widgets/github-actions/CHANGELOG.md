@@ -8,7 +8,7 @@ entry of the version being published is what the Fremkit admin shows before an u
 
 ### Changed
 - Workflow rows are finger-sized buttons. Their elements remain in place while elapsed time updates, so a touch is not lost.
-- Touch a run to open its saved GitHub page in the Mac browser. The widget now requests the `github:*` command permission, which prompts for consent when updated.
+- Touch a run to open its saved GitHub page in the Mac browser. Opening requires a Fremkit release with the GitHub `open` command and prompts for the new command permission when updated.
 
 ## 1.0.1 — 2026-09-18
 
