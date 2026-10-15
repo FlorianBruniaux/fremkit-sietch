@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Local AI</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; color: var(--on-surface, var(--text, #e6e8eb)); font-family: var(--font, system-ui, sans-serif); }
+  * { box-sizing: border-box; }
+  .wrap { height: 100%; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .note, .status, .meta { color: var(--text-muted, currentColor); font-size: calc(12px * var(--text-scale, 1)); line-height: 1.3; }
+  .note { flex: none; }
+  .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-height: 0; flex: 1; }
+  .column { min-width: 0; min-height: 0; overflow: auto; }
+  .section + .section { margin-top: 10px; }
+  h3 { margin: 0 0 4px; color: var(--accent, currentColor); font-size: calc(14px * var(--text-scale, 1)); }
+  .status { border-left: 3px solid var(--accent, currentColor); padding-left: 6px; }
+  .status:empty { display: none; }
+  .row { padding: 6px 0; border-bottom: 1px solid var(--border, #464c56); }
+  .name { font-size: calc(14px * var(--text-scale, 1)); font-weight: 650; overflow-wrap: anywhere; }
+  .meta { overflow-wrap: anywhere; }
+  html.accent-fill h3, html.accent-fill .note, html.accent-fill .status, html.accent-fill .meta { color: var(--on-surface); }
+  @media (max-height: 380px) { .wrap { padding: 7px; } .row { padding: 4px 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note" id="note"></div>
+  <div class="columns">
+    <div class="column">
+      <section class="section"><h3 id="loadedTitle"></h3><div class="status" id="loadedStatus"></div><div id="loaded"></div></section>
+      <section class="section"><h3 id="installedTitle"></h3><div class="status" id="installedStatus"></div><div id="installed"></div></section>
+    </div>
+    <div class="column"><section class="section"><h3 id="mlxTitle"></h3><div class="status" id="mlxStatus"></div><div id="mlx"></div></section></div>
+  </div>
+</div>
+<script>
+  var L = {
+    loading: { fr: 'Chargement…', en: 'Loading…' },
+    newerHost: { fr: 'Version plus récente de Fremkit nécessaire', en: 'Needs a newer Fremkit' },
+    stale: { fr: 'Données anciennes', en: 'Stale data' },
+    offline: { fr: 'Ollama ne fonctionne pas', en: 'Ollama is not running' },
+    unavailable: { fr: 'Service indisponible', en: 'Service unavailable' },
+    invalid: { fr: 'Données illisibles', en: 'Unreadable data' },
+    unknown: { fr: 'Inconnu', en: 'Unknown' },
+    note: { fr: 'Chargé en mémoire ne signifie pas génération en cours. MLX : observation des processus uniquement.', en: 'Loaded into memory does not mean generating. MLX: process observation only.' },
+    loaded: { fr: 'Ollama · chargés en mémoire', en: 'Ollama · loaded into memory' },
+    installed: { fr: 'Ollama · installés', en: 'Ollama · installed' },
+    mlx: { fr: 'MLX / oMLX', en: 'MLX / oMLX' },
+    noLoaded: { fr: 'Aucun modèle chargé', en: 'No loaded model' },
+    noInstalled: { fr: 'Aucun modèle installé', en: 'No installed model' },
+    noMlx: { fr: 'Aucun processus MLX détecté', en: 'No MLX process detected' },
+    loadedMemory: { fr: 'Empreinte chargée', en: 'Loaded footprint' },
+    gpuMemory: { fr: 'Part GPU déclarée', en: 'Reported GPU allocation' },
+    disk: { fr: 'Taille sur disque', en: 'Disk size' },
+    context: { fr: 'Contexte', en: 'Context' },
+    pid: { fr: 'PID', en: 'PID' },
+    cpu: { fr: 'CPU', en: 'CPU' },
+    port: { fr: 'port', en: 'port' }
+  }
+  var snapshot = null
+  var olderHost = false
+  function t(key) { return Fremkit.t(L[key]) }
+  function esc(value) { return Fremkit.esc(value == null ? '' : value) }
+  function byId(id) { return document.getElementById(id) }
+  function gb(value) {
+    return value == null ? t('unknown') : (value / 1073741824).toLocaleString(Fremkit.locale, { maximumFractionDigits: 1 }) + ' ' + (Fremkit.locale === 'fr' ? 'Go' : 'GB')
+  }
+  function state(part, key) {
+    if (!part) return t(olderHost ? 'newerHost' : 'loading')
+    var error = part.error === 'invalid' ? t('invalid') : part.error === 'offline' ? t(key === 'mlx' ? 'unavailable' : 'offline') : part.error ? t('unavailable') : ''
+    return (part.stale ? t('stale') : '') + (part.stale && error ? ' · ' : '') + error
+  }
+  function modelRow(model, key) {
+    if (key === 'mlx') {
+      var name = model.model || [model.backend, model.port == null ? '' : t('port') + ' ' + model.port].filter(Boolean).join(' · ') || t('unknown')
+      var cpu = typeof model.cpu === 'number' && Number.isFinite(model.cpu) ? model.cpu.toLocaleString(Fremkit.locale, { maximumFractionDigits: 1 }) + '%' : '?'
+      return '<div class="row"><div class="name">' + esc(name) + '</div><div class="meta">'
+        + esc(model.backend) + ' · ' + esc(t('pid')) + ' ' + esc(model.pid) + ' · ' + esc(t('cpu')) + ' ' + esc(cpu) + ' · ' + esc(gb(model.memoryBytes))
+        + (model.port == null ? '' : ' · ' + esc(t('port')) + ' ' + esc(model.port)) + '</div></div>'
+    }
+    return '<div class="row"><div class="name">' + esc(model.name) + '</div><div class="meta">'
+      + esc(key === 'loaded' ? t('loadedMemory') : t('disk')) + ' ' + esc(gb(model.size))
+      + (key === 'loaded' && model.size_vram != null ? ' · ' + esc(t('gpuMemory')) + ' ' + esc(gb(model.size_vram)) : '')
+      + (key === 'loaded' && model.context_length != null ? ' · ' + esc(t('context')) + ' ' + esc(model.context_length.toLocaleString(Fremkit.locale)) : '')
+      + '</div></div>'
+  }
+  function render() {
+    document.documentElement.lang = Fremkit.locale
+    byId('note').textContent = t('note')
+    for (var key of ['loaded', 'installed', 'mlx']) {
+      var part = snapshot && snapshot[key]
+      var rows = part && part.data
+      byId(key + 'Title').textContent = t(key)
+      byId(key + 'Status').textContent = state(part, key)
+      byId(key).innerHTML = !rows ? '' : !rows.length ? esc(t(key === 'mlx' ? 'noMlx' : key === 'loaded' ? 'noLoaded' : 'noInstalled')) : rows.map(function (row) { return modelRow(row, key) }).join('')
+    }
+    // The same offline error on both Ollama lists is redundant.
+    if (snapshot && snapshot.loaded && snapshot.installed && snapshot.loaded.error === 'offline' && snapshot.installed.error === 'offline') {
+      byId('installedStatus').textContent = snapshot.installed.stale ? t('stale') : ''
+    }
+  }
+  Fremkit.whenReady(function () {
+    Fremkit.subscribe('local-models', function (data) { snapshot = data; render() })
+    Fremkit.onLocale(render)
+    setTimeout(function () { if (!snapshot) { olderHost = true; render() } }, 20000)
+    render()
+  })
+</script>
+</body>
+</html>
