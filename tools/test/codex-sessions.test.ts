@@ -24,14 +24,22 @@ function load(id: string, data?: any, locale = 'en', result: any = { ok: true })
   }
   const document: any = { activeElement: null, getElementById: element, documentElement: { lang: 'en', style: { setProperty() {} } } }
   const list = element('list')
-  let listHtml = ''
-  Object.defineProperty(list, 'innerHTML', { get: () => listHtml, set: (html: string) => { if (document.activeElement?.inList) document.activeElement = null; listHtml = html } })
+  let listHtml = '', listWrites = 0
+  const liveStates = new Map<string, string>(), disabled = new Map<string, boolean>()
+  Object.defineProperty(list, 'innerHTML', { get: () => listHtml, set: (html: string) => { if (document.activeElement?.inList) document.activeElement = null; listHtml = html; listWrites++ } })
   list.contains = (button: any) => button?.inList === true
   list.querySelectorAll = (selector: string) => [...list.innerHTML.matchAll(/<button\b[^>]*>/g)]
     .filter((match: any) => match[0].includes(selector.slice(7, -1) + '="'))
     .map((match: any) => { const attr = selector.slice(7, -1), value = match[0].match(new RegExp(attr + '="([^"]*)"'))?.[1]; return {
       inList: true, getAttribute: (name: string) => name === attr ? value : null,
       focus: () => { document.activeElement = list.querySelectorAll(selector).find((item: any) => item.getAttribute(attr) === value) || null },
+      set disabled(next: boolean) { if (attr === 'data-id') disabled.set(value ?? '', next) },
+      get disabled() { return attr === 'data-id' ? disabled.get(value ?? '') ?? false : false },
+      querySelector: (kind: string) => ({
+        set textContent(next: string) { if (kind === '.state') liveStates.set(value ?? '', next) },
+        get textContent() { return kind === '.state' ? (liveStates.get(value ?? '') ?? '') : '' },
+        className: ''
+      })
     } })
   const api = { locale, compact: false, slot: null, size: { px: { width: 800, height: 600 } },
     esc: (value: any) => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!)),
@@ -45,6 +53,7 @@ function load(id: string, data?: any, locale = 'en', result: any = { ok: true })
   })
   return { elements, commands, channels, api, update: (d: any) => callbacks.codex?.(d),
     advance: (ms: number) => { clock += ms; timers.forEach(cb => cb()) },
+    liveState: (id: string) => liveStates.get(id), disabled: (id: string) => disabled.get(id), listWrites: () => listWrites,
     focus: (attr: string, value: string) => { document.activeElement = list.querySelectorAll('button[' + attr + ']').find((item: any) => item.getAttribute(attr) === value) },
     focused: (attr: string) => document.activeElement?.getAttribute(attr),
     language: (lang: string) => { api.locale = lang; callbacks.locale?.() },
@@ -153,7 +162,7 @@ describe('Codex observed session cards',()=>{
  it('shows the observed model, effort, project and elapsed turn time rather than session age',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed()]));const html=w.elements.get('list').innerHTML;expect(html).toContain('gpt-example');expect(html).toContain('thinking high');expect(html).toContain('example-project @ main');expect(html).toContain('Tour : 7 min');expect(html).toContain('En travail');expect(w.text()).not.toContain('Projet : inconnu');w.click(first);expect(w.commands).toEqual([['codex','open',{threadId:first}]])})
  it('opens a separate child panel without navigating the parent or sending a prompt',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed({subagents:[observed({id:second,parentId:first,agentName:'check',nickname:'Example Agent',role:'worker',model:'gpt-child',state:'done',durationMs:120000,finishedAt:now})]})]));expect(w.elements.get('agents').hidden).toBe(true);w.agents(first);expect(w.elements.get('agents').hidden).toBe(false);expect(w.elements.get('agentList').innerHTML).toContain('gpt-child');expect(w.elements.get('agentList').innerHTML).toContain('Terminé');expect(w.elements.get('agentList').innerHTML).toContain('2 min');expect(w.commands).toEqual([]);w.agents(first);expect(w.elements.get('agents').hidden).toBe(true)})
  it('does not paint cached or old observations as current work and keeps the completed duration finite',()=>{const w=load('codex-sessions',snapshot());w.observations({...live([observed()]),updatedAt:now-16000});expect(w.elements.get('list').innerHTML).toContain('Unknown activity');expect(w.elements.get('list').innerHTML).not.toContain('>Working<');w.observations(live([observed({state:'done',durationMs:420000,finishedAt:now-100000})]));expect(w.elements.get('list').innerHTML).toContain('Turn: 7 min');expect(w.elements.get('list').innerHTML).toContain('Finished')})
- it('expires live badges and opening controls even without a provider update',()=>{const w=load('codex-sessions',snapshot());w.observations(live([observed()]));expect(w.elements.get('list').innerHTML).toContain('>Working<');w.advance(16000);expect(w.elements.get('list').innerHTML).toContain('Unknown activity');w.advance(105000);expect(w.elements.get('list').innerHTML).toContain('disabled');w.click(first);expect(w.commands).toEqual([])})
+ it('expires live badges and opening controls even without a provider update',()=>{const w=load('codex-sessions',snapshot());w.observations(live([observed()]));expect(w.elements.get('list').innerHTML).toContain('>Working<');const writes=w.listWrites();w.advance(16000);expect(w.liveState(first)).toBe('Unknown activity');expect(w.listWrites()).toBe(writes);w.advance(105000);expect(w.disabled(first)).toBe(true);expect(w.listWrites()).toBe(writes);w.click(first);expect(w.commands).toEqual([])})
  it('escapes agent names, models and project data, including the detail panel',()=>{const w=load('codex-sessions',snapshot());w.observations(live([observed({project:'<img>',model:'<script>',subagents:[observed({id:second,agentName:'<b>agent</b>',model:'<script>'})]})]));w.agents(first);expect(w.elements.get('list').innerHTML).toContain('&lt;script&gt;');expect(w.elements.get('agentList').innerHTML).toContain('&lt;b&gt;agent&lt;/b&gt;');expect(w.elements.get('agentList').innerHTML).not.toContain('<script>')})
  it('shows the exact agent count and identifies a partial detail list',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed({subagentCount:27,agentsTruncated:true,subagents:[observed({id:second,agentName:'check'})]})]));expect(w.elements.get('list').innerHTML).toContain('27 agents');w.agents(first);expect(w.elements.get('agentsTitle').textContent).toContain('1 sur 27 agents');expect(w.elements.get('agentsNote').textContent).toBe('Liste des agents partielle');expect(w.commands).toEqual([])})
  it('removes the expanded panel when its parent is no longer present and localizes model labels',()=>{const w=load('codex-sessions',snapshot());w.observations(live([observed({subagents:[observed({id:second})]})]));w.agents(first);w.observations(live([]));expect(w.elements.get('agents').hidden).toBe(true);w.observations(live([observed({modelSource:'stored'})]));w.language('fr');expect(w.elements.get('list').innerHTML).toContain('Dernier modèle enregistré')})
@@ -177,7 +186,7 @@ describe('Codex repository groups',()=>{
  })
  it('retains keyboard focus on the same group or session after a redraw',()=>{
   const w=load('codex-sessions',snapshot());w.observations(live([observed(first)]))
-  w.focus('data-id',first);w.advance(5000);expect(w.focused('data-id')).toBe(first)
+  w.focus('data-id',first);const writes=w.listWrites();w.advance(5000);expect(w.focused('data-id')).toBe(first);expect(w.listWrites()).toBe(writes)
   w.focus('data-group','project:repo-a');w.group('project:repo-a');expect(w.focused('data-group')).toBe('project:repo-a')
  })
  it('keeps old host directory labels, escapes project names and refreshes renamed labels',()=>{
