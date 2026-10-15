@@ -15,6 +15,13 @@ widget API is documented in its [writing-widgets guide](https://github.com/fduss
   Use `example.com` and documentation IP ranges when examples need an address.
 - Declare only the channels, commands and network hosts the widget actually uses. Escape text
   from external services with `Fremkit.esc`; provide French and English for user-facing labels.
+- Let the host frame draw the widget title. Do not paint a second title or a service logo
+  inside the widget; `Fremkit.showTitle` is described in the writing-widgets guide.
+- Keep one changelog entry for each version actually published. Collapse intermediate versions
+  that never reached the registry into the entry for the version users will install.
+- State when a widget needs a core command or channel that has not been released. The manifest's
+  `sdk` checks the bridge generation, not provider features: wait for a Fremkit release and
+  handle an older host's unknown-command reply without leaving the tile broken.
 - `tools/vendor/` mirrors Fremkit's schemas and packer. Change the source in Fremkit first, then
   copy the released files here in a separate commit. Do not adjust the vendored files to make a
   local check pass.
