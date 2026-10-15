@@ -8,7 +8,7 @@ entry of the version being published is what the Fremkit admin shows before an u
 
 ### Changed
 - Touching a notification still marks it read. A separate Open button opens its saved GitHub page, and review requests and pull requests open by touch. Opening requires a Fremkit release with the GitHub `open` command.
-- Failed mark-read requests restore the unread row and show a short error message.
+- Failed mark-read requests restore the unread row and show a short error message. Mark-read and Open are separate accessible buttons; timer updates preserve focused controls.
 
 ## 1.1.1 — 2026-09-18
 

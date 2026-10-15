@@ -12,12 +12,27 @@ function load(data: unknown, commandResult: unknown = { ok: true }) {
   const handlers: Record<string, Record<string, (event: any) => void>> = {}
   const callbacks: Record<string, (data: any) => void> = {}
   const timers: (() => void)[] = []
+  const intervals: (() => void)[] = []
   const commands: unknown[][] = []
   let now = Date.now()
   const element = (id: string) => {
     if (!elements.has(id)) elements.set(id, { hidden: false, style: { setProperty() {} }, classList: { toggle() {} },
       addEventListener(type: string, handler: (event: any) => void) { (handlers[id] ??= {})[type] = handler } })
     return elements.get(id)
+  }
+  const document: any = { activeElement: null, getElementById: element, documentElement: { style: { setProperty() {} } } }
+  const scroll = element('scroll')
+  let listHtml = ''
+  let replacements = 0
+  Object.defineProperty(scroll, 'innerHTML', { get: () => listHtml, set: (value: string) => { listHtml = value; replacements++; if (document.activeElement?.inScroll) document.activeElement = null } })
+  scroll.contains = (item: any) => item?.inScroll === true
+  scroll.querySelectorAll = (selector: string) => {
+    if (selector !== 'button[data-focus]') return []
+    return [...listHtml.matchAll(/<button\b[^>]*data-focus="([^"]+)"/g)].map(match => ({
+      inScroll: true,
+      getAttribute: (name: string) => name === 'data-focus' ? match[1] : null,
+      focus() { document.activeElement = this }
+    }))
   }
   const api = {
     locale: 'en', compact: false, settings: { connection: 'gh-test' }, size: { px: { height: 500 } },
@@ -28,20 +43,27 @@ function load(data: unknown, commandResult: unknown = { ok: true }) {
     sendCommand: (...args: unknown[]) => { commands.push(args); return Promise.resolve(commandResult) },
   }
   runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)![1], {
-    Fremkit: api, document: { getElementById: element, documentElement: { style: { setProperty() {} } } },
-    Date: { now: () => now }, setInterval() {}, setTimeout(fn: () => void) { timers.push(fn) },
+    Fremkit: api, document,
+    Date: { now: () => now }, setInterval(fn: () => void) { intervals.push(fn) }, setTimeout(fn: () => void) { timers.push(fn) },
   })
   function click(kind: RowKind, id: string, open = false) {
     const row = { getAttribute: (name: string) => ({ 'data-kind': kind, 'data-id': id })[name] ?? null }
-    const target = { closest: (selector: string) => selector === '[data-open]' && open
-      ? { getAttribute: () => kind, closest: () => row }
-      : selector === '.row' ? row : null }
+    const target = { closest: (selector: string) => {
+      if (selector === '[data-open]' && open) return { getAttribute: () => kind, closest: () => row }
+      if (selector === '[data-mark]' && kind === 'notification' && !open) return { closest: () => row }
+      if (selector === 'button.row' && kind !== 'notification') return row
+      return null
+    } }
     handlers.scroll.click({ target })
   }
   return {
     html, elements, commands, click,
     markAll: () => handlers.markAll.click({}),
     advance: (ms: number) => { now += ms; timers.splice(0).forEach(fn => fn()) },
+    tick: () => intervals.forEach(fn => fn()),
+    focus: (key: string) => { document.activeElement = scroll.querySelectorAll('button[data-focus]').find((item: any) => item.getAttribute('data-focus') === key) },
+    focused: () => document.activeElement?.getAttribute('data-focus'),
+    replacements: () => replacements,
   }
 }
 
@@ -58,6 +80,16 @@ describe('GitHub inbox actions', () => {
     await settle()
     expect(widget.commands.at(-1)).toEqual(['github:gh-test', 'open', { kind: 'notification', id: '101' }])
     expect(widget.html).not.toContain('<h2>GitHub inbox</h2>')
+    expect(widget.elements.get('scroll').innerHTML).not.toContain('role="button"')
+  })
+
+  it('retains the focused Open control and card elements on a timer tick', () => {
+    const widget = load(snapshot([notice('101')]))
+    widget.focus('open:101')
+    const before = widget.replacements()
+    widget.tick()
+    expect(widget.replacements()).toBe(before)
+    expect(widget.focused()).toBe('open:101')
   })
 
   it.each(['review', 'pull'] as const)('opens a saved %s row by id', async kind => {

@@ -26,8 +26,9 @@
   html.on-light .serr{color:var(--on-surface,#0b0d10);opacity:.7}
   .row{box-sizing:border-box;width:100%;border:0;font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 8px;border-radius:8px;
     background:rgba(128,128,128,.08)}
-  .row[role="button"],button.row,.row .open{cursor:pointer}
-  .row:focus-visible,.row .open:focus-visible{outline:2px solid var(--accent,#d9b36a)}
+  .row .mark,button.row,.row .open{cursor:pointer}
+  .row:focus-visible,.row .mark:focus-visible,.row .open:focus-visible{outline:2px solid var(--accent,#d9b36a)}
+  .row .mark{display:flex;align-items:center;gap:10px;min-width:0;min-height:44px;flex:1;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left}
   .row .open{flex:0 0 auto;min-height:44px;border:0;border-radius:8px;padding:0 10px;background:var(--surface-2,#1a1e24);color:inherit;font:inherit;font-size:calc(12px * var(--text-scale,1))}
   html.on-light .row .open{background:rgba(128,128,128,.18)}
   .row:active{background:rgba(128,128,128,.22)}
@@ -65,6 +66,7 @@
     reviews: { fr: 'Revues demandées', en: 'Review requests' },
     myPrs: { fr: 'Mes pull requests', en: 'My pull requests' },
     markAll: { fr: 'Tout marquer lu', en: 'Mark all read' },
+    markRead: { fr: 'Marquer comme lu', en: 'Mark as read' },
     open: { fr: 'Ouvrir', en: 'Open' },
     openFailed: { fr: 'Impossible d’ouvrir cette page sur le Mac', en: 'Could not open this page on the Mac' },
     markFailed: { fr: 'Impossible de marquer comme lu', en: 'Could not mark as read' },
@@ -136,20 +138,21 @@
   }
   function sectionErrors() { return (snapshot && snapshot.errors) || {} }
   function notificationRow(n, now) {
-    return '<div class="row' + (pending[n.id] ? ' done' : '') + '" role="button" tabindex="0" data-kind="notification" data-id="' + Fremkit.esc(n.id) + '">' +
+    return '<div class="row' + (pending[n.id] ? ' done' : '') + '" data-kind="notification" data-id="' + Fremkit.esc(n.id) + '">' +
+      '<button type="button" class="mark" data-mark="notification" data-focus="mark:' + Fremkit.esc(n.id) + '" aria-label="' + Fremkit.esc(Fremkit.t(L.markRead) + ': ' + n.title) + '">' +
       '<span class="glyph ' + Fremkit.esc(n.type) + '">' + (GLYPH[n.type] || GLYPH.other) + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(n.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(n.repo) + ' · ' + Fremkit.esc(reason(n.reason)) + '</span></span>' +
-      '<span class="when">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span>' +
-      '<button type="button" class="open" data-open="notification" aria-label="' + Fremkit.esc(Fremkit.t(L.open)) + '">' + Fremkit.esc(Fremkit.t(L.open)) + '</button></div>'
+      '<span class="when" data-updated-at="' + Fremkit.esc(n.updatedAt) + '">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span></button>' +
+      '<button type="button" class="open" data-open="notification" data-focus="open:' + Fremkit.esc(n.id) + '" aria-label="' + Fremkit.esc(Fremkit.t(L.open) + ': ' + n.title) + '">' + Fremkit.esc(Fremkit.t(L.open)) + '</button></div>'
   }
   function pullRow(p, now, kind) {
-    return '<button type="button" class="row" data-kind="' + kind + '" data-id="' + Fremkit.esc(p.id) + '">' +
+    return '<button type="button" class="row" data-kind="' + kind + '" data-id="' + Fremkit.esc(p.id) + '" data-focus="' + kind + ':' + Fremkit.esc(p.id) + '">' +
       '<span class="glyph ' + (p.draft ? 'draft' : 'pr') + '">' + GLYPH.pr + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(p.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(p.repo) + ' #' + Fremkit.esc(p.number) + ' · ' + Fremkit.esc(p.author) +
       (p.draft ? ' · ' + Fremkit.esc(Fremkit.t(L.draft)) : '') + '</span></span>' +
-      '<span class="when">' + Fremkit.esc(ago(now - p.updatedAt)) + '</span></button>'
+      '<span class="when" data-updated-at="' + Fremkit.esc(p.updatedAt) + '">' + Fremkit.esc(ago(now - p.updatedAt)) + '</span></button>'
   }
 
   function renderCompact() {
@@ -211,9 +214,26 @@
     if (show.notifications) part(L.notifications, 'notifications', notifications, function (n) { return notificationRow(n, now) })
     if (show.reviews) part(L.reviews, 'reviews', reviews, function (p) { return pullRow(p, now, 'review') })
     if (show.myPrs) part(L.myPrs, 'myPrs', mine, function (p) { return pullRow(p, now, 'pull') })
+    var active = document.activeElement
+    var focusKey = active && scroll.contains(active) ? active.getAttribute('data-focus') : null
     scroll.innerHTML = html
+    if (focusKey) {
+      var controls = scroll.querySelectorAll('button[data-focus]')
+      for (var i = 0; i < controls.length; i++) {
+        if (controls[i].getAttribute('data-focus') === focusKey) { controls[i].focus({ preventScroll: true }); break }
+      }
+    }
     empty.hidden = drawn > 0 || noted > 0
     empty.textContent = Fremkit.t(L.empty)
+  }
+
+  function refreshTimes() {
+    var labels = document.getElementById('scroll').querySelectorAll('.when[data-updated-at]')
+    for (var i = 0; i < labels.length; i++) {
+      var updatedAt = Number(labels[i].getAttribute('data-updated-at'))
+      if (Number.isFinite(updatedAt)) labels[i].textContent = ago(Date.now() - updatedAt)
+    }
+    renderCompact()
   }
 
   function markRead(id) {
@@ -267,16 +287,16 @@
         if (parent) openRow(open.getAttribute('data-open'), parent.getAttribute('data-id'))
         return
       }
-      var row = e.target.closest('.row')
+      var mark = e.target.closest('[data-mark]')
+      if (mark) {
+        var parent = mark.closest('.row')
+        if (parent) markRead(parent.getAttribute('data-id'))
+        return
+      }
+      var row = e.target.closest('button.row')
       if (!row) return
       var kind = row.getAttribute('data-kind'), id = row.getAttribute('data-id')
-      if (kind === 'notification') markRead(id)
-      else if (kind === 'review' || kind === 'pull') openRow(kind, id)
-    })
-    document.getElementById('scroll').addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      var row = e.target.closest('.row[data-kind="notification"]')
-      if (row && e.target === row) { e.preventDefault(); markRead(row.getAttribute('data-id')) }
+      if (kind === 'review' || kind === 'pull') openRow(kind, id)
     })
     document.getElementById('markAll').addEventListener('click', function () {
       if (!channel || !snapshot) return
@@ -286,6 +306,6 @@
         .then(function (result) { if (!result || !result.ok) throw new Error('markAllRead refused') })
         .catch(function () { pending = Object.create(null); showActionError('markFailed') })
     })
-    setInterval(render, 30000)
+    setInterval(refreshTimes, 30000)
   })
 </script></body></html>
