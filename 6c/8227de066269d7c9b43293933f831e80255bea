@@ -1,0 +1,28 @@
+widgets/google-tasks/manifest.json
+  s_e827e256e15185::t_e9ff881a5ab446 7
+tools/test/google-tasks.test.ts
+  s_e827e256e15185::t_2387ab9dd9bef3 10-14,16-23,25-34,36
+  s_e827e256e15185::t_536cb2e6d14beb 15
+  s_e827e256e15185::t_592515cfa9505f 37,41-51
+  s_e827e256e15185::t_80c86f05340a4a 24
+widgets/google-tasks/CHANGELOG.md
+  s_e827e256e15185::t_e9ff881a5ab446 3-6
+widgets/google-tasks/index.html
+  s_e827e256e15185::t_7249296382c1a4 29-38,47-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c8227de066269d7c9b43293933f831e80255bea",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
