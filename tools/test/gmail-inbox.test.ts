@@ -43,6 +43,12 @@ const settle = () => new Promise(resolve => setImmediate(resolve))
 
 
 describe('Gmail presentation', () => {
+  it('does not declare an incomplete empty page to be an empty inbox', () => {
+    const incomplete = { ...mail('account-a', []), truncated: true, estimatedUnreadCount: 75 }
+    const widget = load('gmail-inbox', { 'gmail:account-a': incomplete })
+    expect(widget.text()).toContain('More mail available')
+    expect(widget.text()).not.toContain('No unread mail')
+  })
   it('merges by received time, keeps account identities and never renders bodies, snippets or credentials', () => {
     const a = mail(), b = mail('account-b', [{ ...message('same-id', now + 1000), subject: 'Newer <script>', body: 'PRIVATE BODY', snippet: 'PRIVATE SNIPPET', credentials: 'PRIVATE TOKEN' }])
     const widget = load('gmail-inbox', { 'gmail:account-a': a, 'gmail:account-b': b })

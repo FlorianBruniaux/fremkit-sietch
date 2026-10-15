@@ -2,6 +2,7 @@
 
 - Keep mail rows reachable when several accounts fill a short tile.
 - Preserve Open feedback while another account refreshes; clear it when the opened account changes.
+- An unfinished page of unread mail no longer appears as a confirmed empty inbox.
 
 ## 1.0.2
 

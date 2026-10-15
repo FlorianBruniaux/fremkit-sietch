@@ -243,7 +243,7 @@ function render() {
     var s = snapshots[id], estimate = s && typeof s.estimatedUnreadCount === 'number' && Number.isFinite(s.estimatedUnreadCount) ? t('estimate',{n:s.estimatedUnreadCount}) : t('estimateUnknown')
     if (!s || !ageFresh(s) || !Array.isArray(s.messages)) incomplete = true
     if (s && s.truncated) more = true
-    var empty = s && ageFresh(s) && Array.isArray(s.messages) && !s.messages.length ? ' · ' + t('empty') : ''
+    var empty = s && ageFresh(s) && Array.isArray(s.messages) && !s.messages.length && !s.truncated ? ' · ' + t('empty') : ''
     return '<div class="status" data-state="' + stateKind(s) + '"' + accountStyle(id) + '><strong>' + accountDot() + esc(label(id)) + '</strong><br>' + esc(estimate) + '<br><span class="state">' + esc(state(s) + empty) + '</span></div>'
   }).join('')
   document.getElementById('route').textContent = t(list.some(function(row){return row.message.open && row.message.open.reason==='accountRoutingUnverified'})?'route':'browserHelp')
