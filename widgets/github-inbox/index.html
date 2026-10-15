@@ -24,8 +24,13 @@
   /* One source unavailable is one line, not a blank tile. */
   .serr{font-size:calc(12px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);padding:2px 8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.on-light .serr{color:var(--on-surface,#0b0d10);opacity:.7}
-  .row{display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 8px;border-radius:8px;
+  .row{box-sizing:border-box;width:100%;border:0;font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 8px;border-radius:8px;
     background:rgba(128,128,128,.08)}
+  .row .mark,button.row,.row .open{cursor:pointer}
+  .row:focus-visible,.row .mark:focus-visible,.row .open:focus-visible{outline:2px solid var(--accent,#d9b36a)}
+  .row .mark{display:flex;align-items:center;gap:10px;min-width:0;min-height:44px;flex:1;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left}
+  .row .open{flex:0 0 auto;min-height:44px;border:0;border-radius:8px;padding:0 10px;background:var(--surface-2,#1a1e24);color:inherit;font:inherit;font-size:calc(12px * var(--text-scale,1))}
+  html.on-light .row .open{background:rgba(128,128,128,.18)}
   .row:active{background:rgba(128,128,128,.22)}
   .row.done{opacity:.4}
   .glyph{flex:0 0 auto;width:22px;text-align:center;font-size:calc(14px * var(--text-scale, 1));font-weight:700;color:var(--text-muted, #8b93a0)}
@@ -49,6 +54,7 @@
 </style></head>
 <body><div class="wrap">
   <div class="banner" id="banner" hidden></div>
+  <div class="banner bad" id="actionError" hidden></div>
   <div class="head" id="head"><span class="counts" id="counts"></span><button id="markAll" type="button"></button></div>
   <div class="scroll" id="scroll"></div>
   <div class="note" id="empty" hidden></div>
@@ -60,6 +66,10 @@
     reviews: { fr: 'Revues demandées', en: 'Review requests' },
     myPrs: { fr: 'Mes pull requests', en: 'My pull requests' },
     markAll: { fr: 'Tout marquer lu', en: 'Mark all read' },
+    markRead: { fr: 'Marquer comme lu', en: 'Mark as read' },
+    open: { fr: 'Ouvrir', en: 'Open' },
+    openFailed: { fr: 'Impossible d’ouvrir cette page sur le Mac', en: 'Could not open this page on the Mac' },
+    markFailed: { fr: 'Impossible de marquer comme lu', en: 'Could not mark as read' },
     counts: { fr: '{n} non lues · {r} revues', en: '{n} unread · {r} reviews' },
     countsReviews: { fr: '{r} revues', en: '{r} reviews' },
     agoSeconds: { fr: 'il y a {n} s', en: '{n} s ago' },
@@ -102,6 +112,11 @@
   var show = { notifications: true, reviews: true, myPrs: false }, maxRows = 12
   /* Ids the user has just tapped: drawn as read before the next poll confirms it. */
   var pending = Object.create(null)
+  var actionErrorUntil = 0, actionErrorKey = null
+  function showActionError(key) {
+    actionErrorKey = key; actionErrorUntil = Date.now() + 5000; render()
+    setTimeout(render, 5000)
+  }
 
   function ago(ms) {
     var s = Math.max(0, Math.round(ms / 1000))
@@ -123,19 +138,21 @@
   }
   function sectionErrors() { return (snapshot && snapshot.errors) || {} }
   function notificationRow(n, now) {
-    return '<div class="row' + (pending[n.id] ? ' done' : '') + '" data-id="' + Fremkit.esc(n.id) + '" data-url="' + Fremkit.esc(n.url) + '">' +
+    return '<div class="row' + (pending[n.id] ? ' done' : '') + '" data-kind="notification" data-id="' + Fremkit.esc(n.id) + '">' +
+      '<button type="button" class="mark" data-mark="notification" data-focus="mark:' + Fremkit.esc(n.id) + '" aria-label="' + Fremkit.esc(Fremkit.t(L.markRead) + ': ' + n.title) + '">' +
       '<span class="glyph ' + Fremkit.esc(n.type) + '">' + (GLYPH[n.type] || GLYPH.other) + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(n.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(n.repo) + ' · ' + Fremkit.esc(reason(n.reason)) + '</span></span>' +
-      '<span class="when">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span></div>'
+      '<span class="when" data-updated-at="' + Fremkit.esc(n.updatedAt) + '">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span></button>' +
+      '<button type="button" class="open" data-open="notification" data-focus="open:' + Fremkit.esc(n.id) + '" aria-label="' + Fremkit.esc(Fremkit.t(L.open) + ': ' + n.title) + '">' + Fremkit.esc(Fremkit.t(L.open)) + '</button></div>'
   }
-  function pullRow(p, now) {
-    return '<div class="row" data-url="' + Fremkit.esc(p.url) + '">' +
+  function pullRow(p, now, kind) {
+    return '<button type="button" class="row" data-kind="' + kind + '" data-id="' + Fremkit.esc(p.id) + '" data-focus="' + kind + ':' + Fremkit.esc(p.id) + '">' +
       '<span class="glyph ' + (p.draft ? 'draft' : 'pr') + '">' + GLYPH.pr + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(p.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(p.repo) + ' #' + Fremkit.esc(p.number) + ' · ' + Fremkit.esc(p.author) +
       (p.draft ? ' · ' + Fremkit.esc(Fremkit.t(L.draft)) : '') + '</span></span>' +
-      '<span class="when">' + Fremkit.esc(ago(now - p.updatedAt)) + '</span></div>'
+      '<span class="when" data-updated-at="' + Fremkit.esc(p.updatedAt) + '">' + Fremkit.esc(ago(now - p.updatedAt)) + '</span></button>'
   }
 
   function renderCompact() {
@@ -150,6 +167,9 @@
   }
 
   function render() {
+    var actionError = document.getElementById('actionError')
+    actionError.hidden = Date.now() >= actionErrorUntil
+    actionError.textContent = actionErrorKey ? Fremkit.t(L[actionErrorKey]) : ''
     if (Fremkit.compact) { renderCompact(); return }
     var banner = document.getElementById('banner'), scroll = document.getElementById('scroll')
     var empty = document.getElementById('empty'), head = document.getElementById('head')
@@ -192,11 +212,28 @@
       if (rows.length) html += section(label) + rows.map(row).join('')
     }
     if (show.notifications) part(L.notifications, 'notifications', notifications, function (n) { return notificationRow(n, now) })
-    if (show.reviews) part(L.reviews, 'reviews', reviews, function (p) { return pullRow(p, now) })
-    if (show.myPrs) part(L.myPrs, 'myPrs', mine, function (p) { return pullRow(p, now) })
+    if (show.reviews) part(L.reviews, 'reviews', reviews, function (p) { return pullRow(p, now, 'review') })
+    if (show.myPrs) part(L.myPrs, 'myPrs', mine, function (p) { return pullRow(p, now, 'pull') })
+    var active = document.activeElement
+    var focusKey = active && scroll.contains(active) ? active.getAttribute('data-focus') : null
     scroll.innerHTML = html
+    if (focusKey) {
+      var controls = scroll.querySelectorAll('button[data-focus]')
+      for (var i = 0; i < controls.length; i++) {
+        if (controls[i].getAttribute('data-focus') === focusKey) { controls[i].focus({ preventScroll: true }); break }
+      }
+    }
     empty.hidden = drawn > 0 || noted > 0
     empty.textContent = Fremkit.t(L.empty)
+  }
+
+  function refreshTimes() {
+    var labels = document.getElementById('scroll').querySelectorAll('.when[data-updated-at]')
+    for (var i = 0; i < labels.length; i++) {
+      var updatedAt = Number(labels[i].getAttribute('data-updated-at'))
+      if (Number.isFinite(updatedAt)) labels[i].textContent = ago(Date.now() - updatedAt)
+    }
+    renderCompact()
   }
 
   function markRead(id) {
@@ -204,10 +241,16 @@
     // Optimistic: the row greys out at once and the next poll confirms it. A refusal puts it back.
     pending[id] = true
     render()
-    var result = Fremkit.sendCommand(channel, 'markRead', { id: id })
-    if (result && typeof result.catch === 'function') {
-      result.catch(function (err) { delete pending[id]; render(); console.error('markRead failed', err) })
-    }
+    Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'markRead', { id: id }) })
+      .then(function (result) { if (!result || !result.ok) throw new Error('markRead refused') })
+      .catch(function () { delete pending[id]; showActionError('markFailed') })
+  }
+
+  function openRow(kind, id) {
+    if (!channel || !id) return
+    Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'open', { kind: kind, id: id }) })
+      .then(function (result) { if (!result || !result.ok) throw new Error('open refused') })
+      .catch(function () { showActionError('openFailed') })
   }
 
   function applySettings(s) {
@@ -238,19 +281,31 @@
     Fremkit.onSettings(function (next) { applySettings(next || {}) })
 
     document.getElementById('scroll').addEventListener('click', function (e) {
-      var row = e.target.closest('.row')
+      var open = e.target.closest('[data-open]')
+      if (open) {
+        var parent = open.closest('.row')
+        if (parent) openRow(open.getAttribute('data-open'), parent.getAttribute('data-id'))
+        return
+      }
+      var mark = e.target.closest('[data-mark]')
+      if (mark) {
+        var parent = mark.closest('.row')
+        if (parent) markRead(parent.getAttribute('data-id'))
+        return
+      }
+      var row = e.target.closest('button.row')
       if (!row) return
-      if (row.getAttribute('data-id')) markRead(row.getAttribute('data-id'))
+      var kind = row.getAttribute('data-kind'), id = row.getAttribute('data-id')
+      if (kind === 'review' || kind === 'pull') openRow(kind, id)
     })
     document.getElementById('markAll').addEventListener('click', function () {
       if (!channel || !snapshot) return
       (snapshot.notifications || []).forEach(function (n) { pending[n.id] = true })
       render()
-      var result = Fremkit.sendCommand(channel, 'markAllRead', {})
-      if (result && typeof result.catch === 'function') {
-        result.catch(function (err) { pending = Object.create(null); render(); console.error('markAllRead failed', err) })
-      }
+      Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'markAllRead', {}) })
+        .then(function (result) { if (!result || !result.ok) throw new Error('markAllRead refused') })
+        .catch(function () { pending = Object.create(null); showActionError('markFailed') })
     })
-    setInterval(render, 30000)
+    setInterval(refreshTimes, 30000)
   })
 </script></body></html>
