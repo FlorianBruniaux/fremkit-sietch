@@ -1,3 +1,7 @@
+## 1.0.4
+
+- End all-day events on the calendar's local date, and keep event controls reachable in short tiles.
+
 ## 1.0.3
 
 - Display identical account and calendar labels once, while preserving distinct names, verified email identities and exact opening actions.

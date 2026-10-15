@@ -66,6 +66,15 @@ describe('Calendar presentation', () => {
     expect(widget.rows()).toContain('14:01'); expect(widget.rows()).toContain('Europe/Paris')
     expect(widget.elements.get('next')?.textContent).toContain('In 1 min')
   })
+  it('expires all-day events on the exclusive date in their own time zone', () => {
+    const day = { ...event(), allDay: true, start: Date.parse('2026-10-10T00:00:00Z'), end: Date.parse('2026-10-11T00:00:00Z'), startDate: '2026-10-10', endDate: '2026-10-11', title: 'Local day' }
+    const auckland = { ...day, timeZone: 'Pacific/Auckland' }
+    const la = { ...day, timeZone: 'America/Los_Angeles' }
+    const expired = load('google-calendar', { 'google-calendar:account-a': agenda('account-a', [auckland]) })
+    expect(expired.rows()).not.toContain('Local day')
+    const current = load('google-calendar', { 'google-calendar:account-a': agenda('account-a', [la]) })
+    expect(current.rows()).toContain('Local day')
+  })
   it.each([['absent', { available: false, reason: null }], ['invalid', { available: false, reason: 'unsupportedDestination' }]])('disables Join when the meeting destination is %s', (_, join) => {
     const widget = load('google-calendar', { 'google-calendar:account-a': agenda('account-a', [{ ...event(), join }]) })
     widget.click('join'); expect(widget.commands).toEqual([]); expect(widget.rows()).toContain('No validated Meet link')
