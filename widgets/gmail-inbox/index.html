@@ -3,7 +3,7 @@
 <style>
 html,body{margin:0;height:100%;background:transparent;color:var(--on-surface,var(--text,#e6e8eb));font-family:var(--font,-apple-system,system-ui,sans-serif);overflow:hidden}
 *{box-sizing:border-box}[hidden]{display:none!important}
-.wrap{height:100%;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.wrap{height:100%;padding:14px 18px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;touch-action:pan-y}
 .filters{display:flex;gap:10px;flex-wrap:wrap}.filter{flex:1;min-width:140px;display:flex;flex-direction:column;gap:4px}
 label,.meta,.status,.notice{font-size:calc(15px * var(--text-scale,1));line-height:1.4}.meta,.status,.notice,label{color:inherit;opacity:.85}
 select,button{font:inherit;font-size:calc(16px * var(--text-scale,1));color:inherit;background:rgba(128,128,128,.12);border:1px solid rgba(128,128,128,.4);border-radius:8px;min-height:56px;padding:8px 12px}
@@ -13,7 +13,7 @@ button:not(:disabled){cursor:pointer}button:disabled{opacity:.65;cursor:default}
 button:focus-visible,select:focus-visible{outline:3px solid var(--accent,#d9b36a);outline-offset:2px}
 #feedback{border-left:4px solid var(--accent,#d9b36a);padding:10px 12px;opacity:1;font-weight:600}
 #accounts{display:flex;gap:8px;flex-wrap:wrap}.status{flex:1;min-width:160px;padding:8px 10px;border:1px solid rgba(128,128,128,.35);border-radius:8px;overflow-wrap:anywhere}.status strong{font-weight:600}
-#list{flex:1;min-height:0;overflow:auto;touch-action:pan-y;display:flex;flex-direction:column;gap:10px;padding:2px 3px}
+#list{flex:1 0 150px;min-height:150px;overflow:auto;touch-action:pan-y;display:flex;flex-direction:column;gap:10px;padding:2px 3px}
 .row{display:flex;gap:12px;align-items:center;min-height:96px;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,.08);flex-shrink:0}
 .content{flex:1;min-width:0}.title{font-size:calc(20px * var(--text-scale,1));font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sender{font-size:calc(17px * var(--text-scale,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -152,7 +152,7 @@ L.opening={fr:'Ouverture sur le Mac…',en:'Opening on the Mac…'}
 L.openOk={fr:'Mail ouvert sur le Mac',en:'Mail opened on the Mac'}
 L.openFailed={fr:'Impossible d’ouvrir le mail',en:'Could not open mail'}
 L.browserHelp={fr:'Ouvrir affiche le mail dans le navigateur du Mac, avec le compte associé.',en:'Open displays mail in the Mac browser using the associated account.'}
-var feedbackKey='', actionRevision=0
+var feedbackKey='', feedbackConnectionId='', actionRevision=0
 L.fresh={fr:'À jour',en:'Up to date'}
 var FAMILY = 'gmail'
 var settings = {}, snapshots = Object.create(null), unsubs = [], generation = 0, accountFilter = '', maxRows = 8
@@ -178,8 +178,9 @@ function resetSubscriptions() {
   active().forEach(function(id) {
     unsubs.push(Fremkit.subscribe(FAMILY + ':' + id,function(data) {
       if (token !== generation || active().indexOf(id) < 0) return
-      if (!data || data.connectionId !== id) { delete snapshots[id]; render(); return }
-      clearFeedback(); snapshots[id] = data; render()
+      if (!data || data.connectionId !== id) { if (id === feedbackConnectionId) clearFeedback(); delete snapshots[id]; render(); return }
+      if (id === feedbackConnectionId) clearFeedback()
+      snapshots[id] = data; render()
     }))
   })
 }
@@ -206,7 +207,7 @@ function ready() {
 }
 
 function resetFilter() {}
-function clearFeedback() { ++actionRevision; feedbackKey='' }
+function clearFeedback() { ++actionRevision; feedbackKey=''; feedbackConnectionId='' }
 function canOpen(row) { var s=snapshots[row.connectionId]; return !!(s && s.account && s.connectionId===row.connectionId && ageFresh(s) && row.message.open && row.message.open.available===true && row.message.open.reason===null) }
 function setupActions() {
   document.getElementById('list').addEventListener('click',function(e) {
@@ -214,7 +215,7 @@ function setupActions() {
     var id=button.getAttribute('data-connection'), messageId=button.getAttribute('data-id')
     var row=rows().slice(0,maxRows).filter(function(r){return r.connectionId===id && r.message.id===messageId})[0]
     if (!row || !canOpen(row)) return
-    clearFeedback(); var epoch=generation, revision=actionRevision, original=snapshots[id]; feedbackKey='opening'; render()
+    clearFeedback(); var epoch=generation, revision=actionRevision, original=snapshots[id]; feedbackKey='opening'; feedbackConnectionId=id; render()
     var result
     try { result=Fremkit.sendCommand(FAMILY+':'+id,'open',{connectionId:id,messageId:messageId}) } catch (_) { result=Promise.reject(new Error('open failed')) }
     Promise.resolve(result).then(function(answer) {

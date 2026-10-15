@@ -139,6 +139,18 @@ describe('Google enabled open actions', () => {
     const widget=load('gmail-inbox',{'gmail:account-a':mail('account-a',[{...message(),open:enabled}])},'en',{ok:false})
     widget.click('open'); await settle();expect(widget.text()).toContain('Could not open mail');expect(widget.text()).not.toContain('Mail opened on the Mac')
   })
+  it('keeps pending feedback when another account refreshes, then clears it when the opened account changes', async () => {
+    let resolve: any
+    const opened = mail('account-a', [{ ...message(), open: enabled }])
+    const widget = load('gmail-inbox', { 'gmail:account-a': opened, 'gmail:account-b': mail('account-b') }, 'en', () => new Promise(r => { resolve = r }))
+    widget.click('open')
+    widget.update('account-b', mail('account-b'))
+    expect(widget.text()).toContain('Opening on the Mac')
+    resolve({ ok: true }); await settle()
+    expect(widget.text()).toContain('Mail opened on the Mac')
+    widget.update('account-a', mail('account-a', [{ ...message(), open: enabled }]))
+    expect(widget.elements.get('feedback')?.hidden).toBe(true)
+  })
 })
 
 for (const [id, family, data] of [['gmail-inbox', 'gmail', mail]] as const) {

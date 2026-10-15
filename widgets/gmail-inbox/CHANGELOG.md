@@ -1,3 +1,8 @@
+## 1.0.3
+
+- Keep mail rows reachable when several accounts fill a short tile.
+- Preserve Open feedback while another account refreshes; clear it when the opened account changes.
+
 ## 1.0.2
 
 - Recognize the service with a local icon and identify each account with its configured color alongside the account name. State accents retain their written labels.
