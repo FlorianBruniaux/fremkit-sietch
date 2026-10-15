@@ -1,0 +1,44 @@
+{
+  "id": "google-tasks",
+  "name": {
+    "fr": "Google Tasks",
+    "en": "Google Tasks"
+  },
+  "version": "1.0.0",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "Listes et tâches Google, multi-comptes en lecture seule",
+    "en": "Read-only Google task lists and tasks across accounts"
+  },
+  "category": "productivity",
+  "icon": "list",
+  "minSize": [
+    16,
+    8
+  ],
+  "defaultSize": [
+    64,
+    16
+  ],
+  "subscriptions": [
+    "google-tasks:*"
+  ],
+  "commands": [
+    "google-tasks:*"
+  ],
+  "permissions": {
+    "network": []
+  },
+  "settingsSchema": {
+    "accounts": {
+      "type": "connections",
+      "connectionType": "google",
+      "connectionService": "google-tasks",
+      "label": {
+        "fr": "Comptes Google",
+        "en": "Google accounts"
+      }
+    }
+  }
+}
