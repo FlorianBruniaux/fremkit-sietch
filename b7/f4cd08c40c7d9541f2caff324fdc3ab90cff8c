@@ -1,0 +1,21 @@
+widgets/github-actions/CHANGELOG.md
+  s_e827e256e15185::t_674407c14f0f06 11
+widgets/github-actions/index.html
+  s_e827e256e15185::t_d27f4377bdf0d0 5,13,17-18,39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b7f4cd08c40c7d9541f2caff324fdc3ab90cff8c",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
