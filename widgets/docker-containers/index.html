@@ -15,12 +15,12 @@
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   .wrap { height: 100%; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
-  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
   .summary, .status, .empty { font-size: calc(12px * var(--text-scale, 1)); line-height: 1.3; }
   .summary { color: var(--text-muted, currentColor); }
   .status { border-left: 3px solid var(--accent, currentColor); padding: 4px 8px; }
   .status:empty { display: none; }
-  .filters { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border, currentColor); border-radius: 10px; }
+  .filters { display: flex; flex-wrap: wrap; max-width: 100%; gap: 3px; padding: 3px; border: 1px solid var(--border, currentColor); border-radius: 10px; }
   .filters button {
     min-height: 44px;
     min-width: 90px;
