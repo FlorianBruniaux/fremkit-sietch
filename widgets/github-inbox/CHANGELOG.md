@@ -4,30 +4,12 @@ What changed for the person using this widget, version by version. The format fo
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the newest version is first, and the
 entry of the version being published is what the Fremkit admin shows before an update.
 
-## 1.2.4
-
-### Added
-- Filter loaded notifications and reviews by GitHub owner and repository. Mark-read affects matching notifications when filtered.
-
-## 1.2.3
-
-### Added
-- Show GitHub, notification and pull-request icons with a clearer unread count. Capped review counts carry a plus sign.
-
-## 1.2.2
+## 1.2.4 — 2026-10-15
 
 ### Changed
-- Increase touch targets to 56 pixels and improve text hierarchy without changing click actions or compact mode.
-
-## 1.2.1
-
-### Fixed
-- Confirm when notifications are marked read. Restore unread rows and show an error when GitHub refuses the request.
-
-## 1.2.0
-
-### Fixed
-- Open the selected notification, review request or pull request in the Mac browser without marking it read.
+- Touching a notification still marks it read. A separate Open button opens its saved GitHub page, and review requests and pull requests open by touch. Opening requires a Fremkit release with the GitHub `open` command.
+- The widget requests the `github:*` command permission, so updating it prompts for consent.
+- Failed mark-read requests restore the unread row and show a short error message.
 
 ## 1.1.1 — 2026-09-18
 

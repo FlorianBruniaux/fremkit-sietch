@@ -2,123 +2,87 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 
-function load(id: string, snapshot = { runs: [] as any[], notifications: [] as any[], reviewRequests: [] as any[], myPrs: [] as any[] }, commandResult = Promise.resolve({ ok: true }), settings: Record<string,unknown> = {}, locale = 'en') {
-  const html = readFileSync(new URL(`../../widgets/${id}/index.html`, import.meta.url), 'utf8')
-  const handlers: Record<string, Record<string, (event: any) => void>> = {}
+type RowKind = 'notification' | 'review' | 'pull'
+const notice = (id: string) => ({ id, title: `Notice ${id}`, type: 'issue', repo: 'owner/repo', updatedAt: Date.now() })
+const snapshot = (notifications: unknown[] = [], reviews: unknown[] = []) => ({ notifications, reviewRequests: reviews, myPrs: [] })
+
+function load(data: unknown, commandResult: unknown = { ok: true }) {
+  const html = readFileSync(new URL('../../widgets/github-inbox/index.html', import.meta.url), 'utf8')
   const elements = new Map<string, any>()
+  const handlers: Record<string, Record<string, (event: any) => void>> = {}
+  const callbacks: Record<string, (data: any) => void> = {}
+  const timers: (() => void)[] = []
+  const commands: unknown[][] = []
+  let now = Date.now()
   const element = (id: string) => {
     if (!elements.has(id)) elements.set(id, { hidden: false, style: { setProperty() {} }, classList: { toggle() {} },
-      querySelectorAll() { return [] },
-      addEventListener(type: string, handler: any) { (handlers[id] ??= {})[type] = handler } })
+      addEventListener(type: string, handler: (event: any) => void) { (handlers[id] ??= {})[type] = handler } })
     return elements.get(id)
   }
-  const callbacks: Record<string, any> = {}
-  const ticks: (() => void)[] = []
-  const commands: any[] = []
-  const api = { locale, settings: { connection: 'gh-test', ...settings }, size: { px: { height: 500, width: 800 }, cells: { width: 20, height: 10 } },
-    t: (text: any, params: Record<string,unknown> = {}) => (text[locale] ?? text.en).replace(/\{(\w+)\}/g, (_:string,k:string)=>String(params[k])), esc: (value: any) => String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!)), whenReady: (fn: any) => fn(), onLocale(fn:any) {callbacks.locale=fn}, onResize() {}, onSettings(fn:any) {callbacks.settings=fn},
-    subscribe: (_channel: string, fn: any) => { callbacks.snapshot=fn; fn(snapshot); return () => {} },
-    sendCommand: (...args: any[]) => { commands.push(args); return commandResult } }
+  const api = {
+    locale: 'en', compact: false, settings: { connection: 'gh-test' }, size: { px: { height: 500 } },
+    t: (text: {en: string}, params: Record<string, unknown> = {}) => text.en.replace(/\{(\w+)\}/g, (_, key) => String(params[key])),
+    esc: (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!),
+    whenReady: (fn: () => void) => fn(), onLocale() {}, onResize() {}, onSettings() {},
+    subscribe: (_channel: string, fn: (data: any) => void) => { callbacks.snapshot = fn; fn(data); return () => {} },
+    sendCommand: (...args: unknown[]) => { commands.push(args); return Promise.resolve(commandResult) },
+  }
   runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)![1], {
     Fremkit: api, document: { getElementById: element, documentElement: { style: { setProperty() {} } } },
-    setInterval(fn: () => void) { ticks.push(fn) }, setTimeout() {}, console,
+    Date: { now: () => now }, setInterval() {}, setTimeout(fn: () => void) { timers.push(fn) },
   })
-  return { commands, ticks, elements, html,
-    update: (data:any)=>callbacks.snapshot(data),
-    language: (lang:string)=>{locale=lang;api.locale=lang;callbacks.locale?.(lang)},
-    settings: (data:any)=>callbacks.settings?.(data),
-    filter: (id:string,value:string)=>handlers[id]?.change?.({target:{value}}),
-    markAll: () => handlers.markAll?.click?.({}), click: (attributes: Record<string, string>) => handlers.scroll?.click?.({ target: {
-    closest: () => ({ getAttribute: (name: string) => attributes[name] ?? null }) } }) }
+  function click(kind: RowKind, id: string, open = false) {
+    const row = { getAttribute: (name: string) => ({ 'data-kind': kind, 'data-id': id })[name] ?? null }
+    const target = { closest: (selector: string) => selector === '[data-open]' && open
+      ? { getAttribute: () => kind, closest: () => row }
+      : selector === '.row' ? row : null }
+    handlers.scroll.click({ target })
+  }
+  return {
+    html, elements, commands, click,
+    markAll: () => handlers.markAll.click({}),
+    advance: (ms: number) => { now += ms; timers.splice(0).forEach(fn => fn()) },
+  }
 }
 
-describe('GitHub mark all read', () => {
-  it('hides unread notifications immediately and leaves requested reviews visible', async () => {
-    const widget = load('github-inbox', {
-      runs: [], notifications: [{id: '101', title: 'Unread notice', type: 'issue', repo: 'o/r', updatedAt: Date.now()}],
-      reviewRequests: [{id: '201', title: 'Requested review', repo: 'o/r', updatedAt: Date.now()}], myPrs: [],
-    })
-    expect(widget.elements.get('scroll').innerHTML).toContain('Unread notice')
+async function settle() { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve() }
+
+describe('GitHub inbox actions', () => {
+  it('keeps notification tap-to-mark-read and exposes a separate open button', async () => {
+    const widget = load(snapshot([notice('101')]))
+    widget.click('notification', '101')
+    await settle()
+    expect(widget.commands).toEqual([['github:gh-test', 'markRead', { id: '101' }]])
+    expect(widget.elements.get('scroll').innerHTML).not.toContain('Notice 101')
+    widget.click('notification', '101', true)
+    await settle()
+    expect(widget.commands.at(-1)).toEqual(['github:gh-test', 'open', { kind: 'notification', id: '101' }])
+    expect(widget.html).not.toContain('<h2>GitHub inbox</h2>')
+  })
+
+  it.each(['review', 'pull'] as const)('opens a saved %s row by id', async kind => {
+    const widget = load(snapshot())
+    widget.click(kind, '201')
+    await settle()
+    expect(widget.commands).toEqual([['github:gh-test', 'open', { kind, id: '201' }]])
+  })
+
+  it('restores an unread notification and hides the error after five seconds on refusal', async () => {
+    const widget = load(snapshot([notice('101')]), { ok: false })
+    widget.click('notification', '101')
+    await settle()
+    expect(widget.elements.get('scroll').innerHTML).toContain('Notice 101')
+    expect(widget.elements.get('actionError').hidden).toBe(false)
+    widget.advance(5000)
+    expect(widget.elements.get('actionError').hidden).toBe(true)
+  })
+
+  it('uses one command to mark every notification, leaving reviews visible', async () => {
+    const widget = load(snapshot([notice('101')], [{ id: '201', title: 'Review', repo: 'owner/repo', updatedAt: Date.now() }]))
     widget.markAll()
-    await Promise.resolve()
+    await settle()
     expect(widget.commands).toEqual([['github:gh-test', 'markAllRead', {}]])
-    expect(widget.elements.get('scroll').innerHTML).not.toContain('Unread notice')
-    expect(widget.elements.get('scroll').innerHTML).toContain('Requested review')
-  })
-})
-
-describe('GitHub mark-read feedback', () => {
-  it('explains the notification-only action after GitHub accepts it', async () => {
-    const widget = load('github-inbox', { runs: [], notifications: [{id: '101', title: 'Unread notice', type: 'issue', repo: 'o/r', updatedAt: Date.now()}], reviewRequests: [], myPrs: [] })
-    expect(widget.elements.get('markAll').textContent).toBe('Mark notifications read')
-    widget.markAll()
-    await Promise.resolve()
-    await Promise.resolve()
-    await new Promise(resolve => setImmediate(resolve))
-    expect(widget.elements.get('markFeedback').hidden).toBe(false)
-    expect(widget.elements.get('markFeedback').textContent).toContain('Review requests remain')
-  })
-  it('restores unread notifications and shows a visible error when GitHub refuses the request', async () => {
-    const widget = load('github-inbox', { runs: [], notifications: [{id: '101', title: 'Unread notice', type: 'issue', repo: 'o/r', updatedAt: Date.now()}], reviewRequests: [], myPrs: [] }, Promise.resolve({ok: false}))
-    widget.markAll()
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
-    await new Promise(resolve => setImmediate(resolve))
-    expect(widget.elements.get('scroll').innerHTML).toContain('Unread notice')
-    expect(widget.elements.get('markFeedback').hidden).toBe(false)
-    expect(widget.elements.get('markFeedback').textContent).toContain('Could not mark')
-  })
-})
-
-
-describe('GitHub inbox local icons',()=>{
- it('marks a capped review list as a lower bound',()=>{
-  const w=load('github-inbox',{runs:[],notifications:[],reviewRequests:Array.from({length:25},(_,i)=>({id:String(i),title:'Review',repo:'owner/repo',updatedAt:Date.now()})),myPrs:[]})
-  expect(w.elements.get('counts').textContent).toBe('0 unread · 25+ reviews')
- })
- it('draws GitHub and notification icons without altering exact row destinations',()=>{
-  const w=load('github-inbox',{runs:[],notifications:[{id:'1',type:'issue',title:'Issue',repo:'owner/repo',updatedAt:Date.now()}],reviewRequests:[],myPrs:[]})
-  expect(w.html).toContain('service-icon')
-  expect(w.elements.get('scroll').innerHTML).toContain('<svg')
-  w.click({'data-id':'1','data-kind':'notification'})
-  expect(w.commands).toEqual([['github:gh-test','open',{kind:'notification',id:'1'}]])
- })
-})
-
-
-
-describe('GitHub inbox destination', () => {
-  it.each(['notification', 'review', 'pull'])('opens %s rows without marking notifications read', kind => {
-    const widget = load('github-inbox')
-    widget.click({ 'data-id': '123', 'data-kind': kind })
-    expect(widget.commands).toEqual([['github:gh-test', 'open', { kind, id: '123' }]])
-  })
-})
-
-describe('GitHub inbox repository filters', () => {
-  it('narrows notifications by owner without losing other accounts', () => {
-    const notice = (id: string, repo: string) => ({ id, repo, title: 'Notice ' + id, type: 'issue', updatedAt: Date.now() })
-    const widget = load('github-inbox', { runs: [], notifications: [notice('1', 'alpha/api'), notice('2', 'beta/web')], reviewRequests: [], myPrs: [] })
-    widget.filter('ownerFilter', 'alpha')
-    expect(widget.elements.get('counts').textContent).toContain('1 unread')
-    expect(widget.elements.get('scroll').innerHTML).toContain('Notice 1')
-    expect(widget.elements.get('scroll').innerHTML).not.toContain('Notice 2')
-    widget.filter('ownerFilter', '')
-    expect(widget.elements.get('scroll').innerHTML).toContain('Notice 2')
-  })
-})
-
-describe('GitHub inbox filtered mark-read', () => {
-  it('marks only unread notifications matching the active owner', async () => {
-    const notice = (id: string, repo: string) => ({ id, repo, title: 'Notice ' + id, type: 'issue', updatedAt: Date.now() })
-    const widget = load('github-inbox', { runs: [], notifications: [notice('1', 'alpha/api'), notice('2', 'beta/web')], reviewRequests: [], myPrs: [] })
-    widget.filter('ownerFilter', 'alpha')
-    widget.markAll()
-    await new Promise(resolve => setImmediate(resolve))
-    expect(widget.commands).toEqual([['github:gh-test', 'markRead', { id: '1' }]])
-    widget.filter('ownerFilter', '')
-    expect(widget.elements.get('scroll').innerHTML).toContain('Notice 2')
-    expect(widget.elements.get('scroll').innerHTML).not.toContain('Notice 1')
+    expect(widget.elements.get('scroll').innerHTML).not.toContain('Notice 101')
+    expect(widget.elements.get('scroll').innerHTML).toContain('Review')
   })
 })

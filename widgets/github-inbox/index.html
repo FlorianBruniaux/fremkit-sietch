@@ -11,8 +11,6 @@
 
   .banner{flex:0 0 auto;font-size:calc(12px * var(--text-scale, 1));letter-spacing:.06em;color:#f0a020;background:rgba(240,160,32,.12);border-radius:8px;padding:4px 8px}
   .banner.bad{color:var(--danger, #d9463f);background:rgba(217,70,63,.12)}
-  .mark-feedback{font-size:calc(13px * var(--text-scale,1));color:var(--text-muted,#8b93a0);padding:4px 0;line-height:1.35}
-  .mark-feedback.bad{color:var(--danger,#d9463f)}
   .head{flex:0 0 auto;display:flex;align-items:center;gap:10px}
   .head .counts{flex:1;font-size:calc(12px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Finger-sized: the button is a touch target, not a link. */
@@ -26,10 +24,13 @@
   /* One source unavailable is one line, not a blank tile. */
   .serr{font-size:calc(12px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);padding:2px 8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.on-light .serr{color:var(--on-surface,#0b0d10);opacity:.7}
-  .row{border:0;font:inherit;color:inherit;text-align:left;width:100%;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 8px;border-radius:8px;
+  .row{box-sizing:border-box;width:100%;border:0;font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 8px;border-radius:8px;
     background:rgba(128,128,128,.08)}
+  .row[role="button"],button.row,.row .open{cursor:pointer}
+  .row:focus-visible,.row .open:focus-visible{outline:2px solid var(--accent,#d9b36a)}
+  .row .open{flex:0 0 auto;min-height:40px;border:0;border-radius:8px;padding:0 10px;background:var(--surface-2,#1a1e24);color:inherit;font:inherit;font-size:calc(12px * var(--text-scale,1))}
+  html.on-light .row .open{background:rgba(128,128,128,.18)}
   .row:active{background:rgba(128,128,128,.22)}
-  .row:focus-visible{outline:2px solid var(--accent,#d9b36a)}
   .row.done{opacity:.4}
   .glyph{flex:0 0 auto;width:22px;text-align:center;font-size:calc(14px * var(--text-scale, 1));font-weight:700;color:var(--text-muted, #8b93a0)}
   .glyph.pr{color:var(--ok, #2fb36b)}.glyph.issue{color:#8ab4f8}.glyph.release{color:#c08af0}
@@ -49,23 +50,10 @@
   .cnum{font-size:calc(calc(var(--h,80px) * .34) * var(--text-scale, 1));font-weight:600;font-variant-numeric:tabular-nums}
   .cnum.rev{color:var(--accent,#d9b36a)}
   html.accent-fill .cnum.rev{color:var(--on-surface)}
-
-/* Large touch targets and readable hierarchy on the Edge; action handlers are unchanged. */
-html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not(.compact) .title{font-size:calc(18px * var(--text-scale,1));line-height:1.3}html:not(.compact) .sub,html:not(.compact) .when{font-size:calc(14px * var(--text-scale,1));line-height:1.3}.head button{min-height:56px;font-size:calc(15px * var(--text-scale,1))}.head .counts{font-size:calc(15px * var(--text-scale,1))}.sect{font-size:calc(13px * var(--text-scale,1))}
-
-  .service-head{display:flex;align-items:center;gap:12px;flex:0 0 auto;padding:4px 0 6px}.service-head h2{margin:0;font-size:calc(24px * var(--text-scale,1));line-height:1.2}.service-icon{width:30px;height:30px;flex:none;color:var(--text,#e6e8eb)}html.on-light .service-icon{color:var(--on-surface,#0b0d10)}html.compact .service-head{display:none}
-
-  .glyph{width:26px;height:26px;display:flex;align-items:center;justify-content:center}.glyph svg{width:24px;height:24px}.head{flex-wrap:wrap;gap:12px}.head .counts{font-size:calc(19px * var(--text-scale,1));font-weight:650}.sect{display:flex;align-items:center;gap:8px}.sect svg{width:20px;height:20px;flex:none}
-
-  .filters{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;flex:0 0 auto}.filters label{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:13px;color:var(--text-muted,#8b93a0)}.filters select{box-sizing:border-box;width:100%;min-height:56px;padding:8px 12px;border:1px solid var(--border,#464c56);border-radius:8px;background:var(--surface-2,#1c2128);color:var(--on-surface,var(--text,#e6e8eb));font:inherit;font-size:15px}.filters select:focus-visible{outline:2px solid var(--accent,#d9b36a);outline-offset:2px}.filter-note{flex:0 0 auto;font-size:12px;color:var(--text-muted,#8b93a0)}html.compact .filters,html.compact .filter-note{display:none!important}
 </style></head>
 <body><div class="wrap">
-  <div class="service-head"><svg class="service-icon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><h2><span id="serviceTitle"></span></h2></div>
-  <div class="filters" id="filters" hidden><label><span id="ownerLabel"></span><select id="ownerFilter" aria-labelledby="ownerLabel"></select></label><label><span id="repoLabel"></span><select id="repoFilter" aria-labelledby="repoLabel"></select></label></div>
-  <div class="filter-note" id="filterNote" hidden></div>
   <div class="banner" id="banner" hidden></div>
-  <div class="banner bad" id="openError" hidden></div>
-  <div class="mark-feedback" id="markFeedback" role="status" aria-live="polite" hidden></div>
+  <div class="banner bad" id="actionError" hidden></div>
   <div class="head" id="head"><span class="counts" id="counts"></span><button id="markAll" type="button"></button></div>
   <div class="scroll" id="scroll"></div>
   <div class="note" id="empty" hidden></div>
@@ -73,22 +61,13 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
 </div>
 <script>
   var L = {
-    ownerLabel: {fr:'Organisation / compte',en:'Organization / account'},
-    repoLabel: {fr:'Dépôt',en:'Repository'},
-    allOwners: {fr:'Toutes les organisations / comptes',en:'All organizations / accounts'},
-    allRepos: {fr:'Tous les dépôts',en:'All repositories'},
-    filterNote: {fr:'Filtres sur les éléments chargés',en:'Filters apply to loaded items'},
-    filteredEmpty: {fr:'Aucun élément chargé pour ce filtre',en:'No loaded items match this filter'},
-
-    serviceTitle: {fr: 'Boîte GitHub', en: 'GitHub inbox'},
-    openFailed: { fr: 'Impossible d’ouvrir cette page sur le Mac', en: 'Could not open this page on the Mac' },
     notifications: { fr: 'Notifications', en: 'Notifications' },
     reviews: { fr: 'Revues demandées', en: 'Review requests' },
     myPrs: { fr: 'Mes pull requests', en: 'My pull requests' },
-    markFiltered: {fr:'Marquer les notifications filtrées lues',en:'Mark filtered notifications read'},
-    markAll: { fr: 'Marquer les notifications lues', en: 'Mark notifications read' },
-    markSent: { fr: 'Demande envoyée à GitHub. Les revues restent à traiter.', en: 'Request sent to GitHub. Review requests remain to be handled.' },
-    markFailed: { fr: 'Marquage impossible. Vérifiez la connexion et les droits du jeton GitHub.', en: 'Could not mark notifications read. Check the connection and GitHub token permissions.' },
+    markAll: { fr: 'Tout marquer lu', en: 'Mark all read' },
+    open: { fr: 'Ouvrir', en: 'Open' },
+    openFailed: { fr: 'Impossible d’ouvrir cette page sur le Mac', en: 'Could not open this page on the Mac' },
+    markFailed: { fr: 'Impossible de marquer comme lu', en: 'Could not mark as read' },
     counts: { fr: '{n} non lues · {r} revues', en: '{n} unread · {r} reviews' },
     countsReviews: { fr: '{r} revues', en: '{r} reviews' },
     agoSeconds: { fr: 'il y a {n} s', en: '{n} s ago' },
@@ -119,9 +98,8 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     reason_team_mention: { fr: 'équipe mentionnée', en: 'team mentioned' },
     reason_ci_activity: { fr: 'CI', en: 'CI' }
   }
-  /* Local SVGs are decorative; row destinations and readable titles remain the authority. */
-  var GLYPH = {"pr": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"6\" cy=\"4\" r=\"2\"/><circle cx=\"6\" cy=\"20\" r=\"2\"/><circle cx=\"18\" cy=\"20\" r=\"2\"/><path d=\"M6 6v12m6-15 3 3-3 3m3-3h1a2 2 0 0 1 2 2v10\"/></svg>", "issue": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v6m0 4h.01\"/></svg>", "release": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 3h8l10 10-8 8L3 11Z\"/><circle cx=\"7\" cy=\"7\" r=\"1\"/></svg>", "ci": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 3H3v5m0-5 5 5m8 13h5v-5m0 5-5-5M3 14v5a2 2 0 0 0 2 2h5M21 10V5a2 2 0 0 0-2-2h-5\"/></svg>", "commit": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M2 12h6m8 0h6\"/></svg>", "discussion": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 4h18v13H9l-6 4Z\"/><path d=\"M7 9h10M7 13h6\"/></svg>", "other": "<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>"}
-  function glyph(key){return Object.prototype.hasOwnProperty.call(GLYPH,key)?GLYPH[key]:GLYPH.other}
+  /* A glyph rather than an icon font: a widget takes no runtime dependency. */
+  var GLYPH = { pr: '⑃', issue: '◉', release: '⬢', ci: '⟳', commit: '◆', discussion: '💬', other: '•' }
   var ERRORS = { unauthorized: L.unauthorized, 'rate-limited': L.rateLimited, unconfigured: L.unconfigured, offline: L.offline }
   var SECTION_ERRORS = {
     'fine-grained-token': L.errFineGrained, forbidden: L.errForbidden, 'not-found': L.errNotFound,
@@ -131,36 +109,11 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
   var snapshot = null, channel = null, unsub = null
   var show = { notifications: true, reviews: true, myPrs: false }, maxRows = 12
   /* Ids the user has just tapped: drawn as read before the next poll confirms it. */
-  var pending = Object.create(null), marking = false
-
-
-  // A repository owner can be a personal account or an organization. Never infer its type.
-  var ownerFilter = '', repoFilter = ''
-  function ownerOf(repo) { return String(repo || '').split('/')[0] }
-  function matchesFilter(item) { return (!ownerFilter || ownerOf(item.repo).toLowerCase() === ownerFilter.toLowerCase()) && (!repoFilter || String(item.repo).toLowerCase() === repoFilter.toLowerCase()) }
-  function hasFilter() { return !!ownerFilter || !!repoFilter }
-  function filterOptions(id, values, chosen, allLabel) {
-    var select = document.getElementById(id)
-    values = Array.from(new Set(values.filter(Boolean))).sort(function(a,b){return a.localeCompare(b)})
-    // Keep an explicit selection when a poll has no matching rows, rather than silently showing everything.
-    if (chosen && values.indexOf(chosen) === -1) values.push(chosen)
-    var options = '<option value=""'+(!chosen?' selected':'')+'>'+Fremkit.esc(Fremkit.t(allLabel))+'</option>' + values.map(function(value){return '<option value="'+Fremkit.esc(value)+'"'+(value===chosen?' selected':'')+'>'+Fremkit.esc(value)+'</option>'}).join('')
-    if (select.innerHTML !== options) select.innerHTML = options
-    select.value = chosen
-  }
-  function renderFilters(items, configured) {
-    var repoNames = (configured || []).concat(items.map(function(item){return item.repo})).filter(Boolean)
-    document.getElementById('filters').hidden = !snapshot || !channel
-    document.getElementById('filterNote').hidden = !snapshot || !channel
-    document.getElementById('ownerLabel').textContent = Fremkit.t(L.ownerLabel)
-    document.getElementById('repoLabel').textContent = Fremkit.t(L.repoLabel)
-    document.getElementById('filterNote').textContent = Fremkit.t(L.filterNote)
-    filterOptions('ownerFilter',repoNames.map(ownerOf),ownerFilter,L.allOwners)
-    filterOptions('repoFilter',repoNames.filter(function(repo){return !ownerFilter || ownerOf(repo).toLowerCase()===ownerFilter.toLowerCase()}),repoFilter,L.allRepos)
-  }
-  function bindFilters() {
-    document.getElementById('ownerFilter').addEventListener('change',function(event){ownerFilter=event.target.value;repoFilter='';render()})
-    document.getElementById('repoFilter').addEventListener('change',function(event){repoFilter=event.target.value;render()})
+  var pending = Object.create(null)
+  var actionErrorUntil = 0, actionErrorKey = null
+  function showActionError(key) {
+    actionErrorKey = key; actionErrorUntil = Date.now() + 5000; render()
+    setTimeout(render, 5000)
   }
 
   function ago(ms) {
@@ -176,21 +129,22 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     var entry = L['reason_' + String(key || '').replace(/[^a-z_]/g, '')]
     return entry ? Fremkit.t(entry) : String(key || '')
   }
-  function section(label) { return '<div class="sect">' + (label===L.notifications?"<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6\"/></svg>":GLYPH.pr) + Fremkit.esc(Fremkit.t(label)) + '</div>' }
+  function section(label) { return '<div class="sect">' + Fremkit.esc(Fremkit.t(label)) + '</div>' }
   function sectionError(code) {
     var entry = SECTION_ERRORS[code] || L.errOffline
     return '<div class="serr">' + Fremkit.esc(Fremkit.t(entry)) + '</div>'
   }
   function sectionErrors() { return (snapshot && snapshot.errors) || {} }
   function notificationRow(n, now) {
-    return '<button type="button" class="row' + (pending[n.id] ? ' done' : '') + '" data-kind="notification" data-id="' + Fremkit.esc(n.id) + '">' +
-      '<span class="glyph ' + Fremkit.esc(n.type) + '">' + glyph(n.type) + '</span>' +
+    return '<div class="row' + (pending[n.id] ? ' done' : '') + '" role="button" tabindex="0" data-kind="notification" data-id="' + Fremkit.esc(n.id) + '">' +
+      '<span class="glyph ' + Fremkit.esc(n.type) + '">' + (GLYPH[n.type] || GLYPH.other) + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(n.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(n.repo) + ' · ' + Fremkit.esc(reason(n.reason)) + '</span></span>' +
-      '<span class="when">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span></button>'
+      '<span class="when">' + Fremkit.esc(ago(now - n.updatedAt)) + '</span>' +
+      '<button type="button" class="open" data-open="notification" aria-label="' + Fremkit.esc(Fremkit.t(L.open)) + '">' + Fremkit.esc(Fremkit.t(L.open)) + '</button></div>'
   }
   function pullRow(p, now, kind) {
-    return '<button type="button" class="row" data-id="' + Fremkit.esc(p.id) + '" data-kind="' + kind + '">' +
+    return '<button type="button" class="row" data-kind="' + kind + '" data-id="' + Fremkit.esc(p.id) + '">' +
       '<span class="glyph ' + (p.draft ? 'draft' : 'pr') + '">' + GLYPH.pr + '</span>' +
       '<span class="body"><span class="title">' + Fremkit.esc(p.title) + '</span>' +
       '<span class="sub">' + Fremkit.esc(p.repo) + ' #' + Fremkit.esc(p.number) + ' · ' + Fremkit.esc(p.author) +
@@ -209,22 +163,11 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     document.getElementById('creview').textContent = reviews
   }
 
-  var openErrorUntil = 0
-  function openRow(row) {
-    if (!channel || !row) return
-    var id = row.getAttribute('data-id'), kind = row.getAttribute('data-kind')
-    if (!id || !kind) return
-    Promise.resolve(Fremkit.sendCommand(channel, 'open', { kind: kind, id: id }))
-      .then(function (result) { if (!result || !result.ok) throw new Error('open failed') })
-      .catch(function () { openErrorUntil = Date.now() + 5000; render() })
-  }
   function render() {
-    document.getElementById('serviceTitle').textContent = Fremkit.t(L.serviceTitle)
-    var openError = document.getElementById('openError')
-    openError.hidden = Date.now() >= openErrorUntil
-    openError.textContent = Fremkit.t(L.openFailed)
+    var actionError = document.getElementById('actionError')
+    actionError.hidden = Date.now() >= actionErrorUntil
+    actionError.textContent = actionErrorKey ? Fremkit.t(L[actionErrorKey]) : ''
     if (Fremkit.compact) { renderCompact(); return }
-    renderFilters(snapshot ? (snapshot.notifications || []).concat(snapshot.reviewRequests || [], snapshot.myPrs || []) : [])
     var banner = document.getElementById('banner'), scroll = document.getElementById('scroll')
     var empty = document.getElementById('empty'), head = document.getElementById('head')
     if (!channel) {
@@ -247,15 +190,15 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
 
     var now = Date.now()
     var errs = sectionErrors()
-    var notifications = (snapshot.notifications || []).filter(function (n) { return !pending[n.id] && matchesFilter(n) })
-    var reviews = (snapshot.reviewRequests || []).filter(matchesFilter), mine = (snapshot.myPrs || []).filter(matchesFilter)
+    var notifications = (snapshot.notifications || []).filter(function (n) { return !pending[n.id] })
+    var reviews = snapshot.reviewRequests || [], mine = snapshot.myPrs || []
     // A count for a source that could not be read would be a lie; drop it from the line instead.
     document.getElementById('counts').textContent = errs.notifications
-      ? (errs.reviews ? '' : Fremkit.t(L.countsReviews, { r: (snapshot.reviewRequests || []).length >= 25 ? reviews.length + '+' : reviews.length }))
-      : Fremkit.t(L.counts, { n: (snapshot.notifications || []).length >= 50 ? notifications.length + '+' : notifications.length, r: (snapshot.reviewRequests || []).length >= 25 ? reviews.length + '+' : reviews.length })
-    document.getElementById('markAll').textContent = Fremkit.t(hasFilter() ? L.markFiltered : L.markAll)
+      ? (errs.reviews ? '' : Fremkit.t(L.countsReviews, { r: reviews.length }))
+      : Fremkit.t(L.counts, { n: notifications.length, r: reviews.length })
+    document.getElementById('markAll').textContent = Fremkit.t(L.markAll)
     document.getElementById('markAll').hidden = !!errs.notifications
-    document.getElementById('markAll').disabled = marking || notifications.length === 0
+    document.getElementById('markAll').disabled = notifications.length === 0
 
     var html = '', drawn = 0, noted = 0
     function take(list) { var slice = list.slice(0, Math.max(0, maxRows - drawn)); drawn += slice.length; return slice }
@@ -270,7 +213,7 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     if (show.myPrs) part(L.myPrs, 'myPrs', mine, function (p) { return pullRow(p, now, 'pull') })
     scroll.innerHTML = html
     empty.hidden = drawn > 0 || noted > 0
-    empty.textContent = Fremkit.t(hasFilter() ? L.filteredEmpty : L.empty)
+    empty.textContent = Fremkit.t(L.empty)
   }
 
   function markRead(id) {
@@ -278,10 +221,16 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     // Optimistic: the row greys out at once and the next poll confirms it. A refusal puts it back.
     pending[id] = true
     render()
-    var result = Fremkit.sendCommand(channel, 'markRead', { id: id })
-    if (result && typeof result.catch === 'function') {
-      result.catch(function (err) { delete pending[id]; render(); console.error('markRead failed', err) })
-    }
+    Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'markRead', { id: id }) })
+      .then(function (result) { if (!result || !result.ok) throw new Error('markRead refused') })
+      .catch(function () { delete pending[id]; showActionError('markFailed') })
+  }
+
+  function openRow(kind, id) {
+    if (!channel || !id) return
+    Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'open', { kind: kind, id: id }) })
+      .then(function (result) { if (!result || !result.ok) throw new Error('open refused') })
+      .catch(function () { showActionError('openFailed') })
   }
 
   function applySettings(s) {
@@ -296,9 +245,7 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
       if (unsub) { unsub(); unsub = null }
       // Another account's inbox is not this one's, so nothing is carried over.
       snapshot = null
-      ownerFilter = ''; repoFilter = ''
-      document.getElementById('markFeedback').hidden = true
-      pending = Object.create(null); marking = false
+      pending = Object.create(null)
       channel = next
       if (channel) unsub = Fremkit.subscribe(channel, function (d) { snapshot = d; render() })
     }
@@ -307,7 +254,6 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
 
   Fremkit.whenReady(function () {
     document.documentElement.lang = Fremkit.locale
-    bindFilters()
     document.documentElement.style.setProperty('--h', Fremkit.size.px.height + 'px')
     Fremkit.onResize(function (size) { document.documentElement.style.setProperty('--h', size.px.height + 'px'); render() })
     Fremkit.onLocale(function (locale) { document.documentElement.lang = locale; render() })
@@ -315,27 +261,30 @@ html:not(.compact) .row{min-height:56px;flex-shrink:0;padding:10px 12px}html:not
     Fremkit.onSettings(function (next) { applySettings(next || {}) })
 
     document.getElementById('scroll').addEventListener('click', function (e) {
+      var open = e.target.closest('[data-open]')
+      if (open) {
+        var parent = open.closest('.row')
+        if (parent) openRow(open.getAttribute('data-open'), parent.getAttribute('data-id'))
+        return
+      }
       var row = e.target.closest('.row')
       if (!row) return
-      openRow(row)
+      var kind = row.getAttribute('data-kind'), id = row.getAttribute('data-id')
+      if (kind === 'notification') markRead(id)
+      else if (kind === 'review' || kind === 'pull') openRow(kind, id)
+    })
+    document.getElementById('scroll').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      var row = e.target.closest('.row[data-kind="notification"]')
+      if (row && e.target === row) { e.preventDefault(); markRead(row.getAttribute('data-id')) }
     })
     document.getElementById('markAll').addEventListener('click', function () {
-      if (!channel || !snapshot || marking) return
-      var selectedNotifications = (snapshot.notifications || []).filter(function(n){return !pending[n.id] && matchesFilter(n)})
-      if (!selectedNotifications.length) return
-      var actionChannel = channel, scoped = hasFilter(), failedIds = []
-      selectedNotifications.forEach(function(n){pending[n.id]=true})
-      marking = true; render()
-      var feedback = document.getElementById('markFeedback'); feedback.hidden = true
-      function send(command,payload){return Promise.resolve().then(function(){return Fremkit.sendCommand(actionChannel,command,payload)}).then(function(result){if(!result||!result.ok)throw new Error('mark refused')})}
-      var operation = scoped ? Promise.all(selectedNotifications.map(function(n){return send('markRead',{id:n.id}).catch(function(){failedIds.push(n.id)})})).then(function(){if(failedIds.length)throw new Error('partial marking')}) : send('markAllRead',{}).catch(function(error){failedIds=selectedNotifications.map(function(n){return n.id});throw error})
-      operation.then(function(){
-        if(channel!==actionChannel)return
-        marking=false;render();feedback.className='mark-feedback';feedback.textContent=Fremkit.t(L.markSent);feedback.hidden=false
-      },function(){
-        if(channel!==actionChannel)return
-        failedIds.forEach(function(id){delete pending[id]});marking=false;render();feedback.className='mark-feedback bad';feedback.textContent=Fremkit.t(L.markFailed);feedback.hidden=false
-      })
+      if (!channel || !snapshot) return
+      (snapshot.notifications || []).forEach(function (n) { pending[n.id] = true })
+      render()
+      Promise.resolve().then(function () { return Fremkit.sendCommand(channel, 'markAllRead', {}) })
+        .then(function (result) { if (!result || !result.ok) throw new Error('markAllRead refused') })
+        .catch(function () { pending = Object.create(null); showActionError('markFailed') })
     })
     setInterval(render, 30000)
   })
