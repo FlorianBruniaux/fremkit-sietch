@@ -318,11 +318,20 @@ function render() {
     return '<div class="status" data-state="' + stateKind(s) + '"' + accountStyle(id) + '><strong>' + accountDot() + esc(label(id)) + '</strong><br><span class="state">' + esc(state(s)) + '</span>' + unavailable + details + '</div>'
   }).join('')
   document.getElementById('route').textContent = t(list.some(function(row){return row.event.open && row.event.open.reason==='accountRoutingUnverified'})?'route':'browserHelp')
-  document.getElementById('list').innerHTML = shown.map(function(row) {
+  var listElement = document.getElementById('list'), activeControl = document.activeElement
+  var focus = activeControl && listElement.contains(activeControl) ? ['data-connection','data-calendar','data-id','data-action'].map(function(key) { return activeControl.getAttribute(key) }) : null
+  listElement.innerHTML = shown.map(function(row) {
     var ev = row.event, enabled = canJoin(row), stale = !ageFresh(row.calendar)
     var attrs = ' data-connection="' + esc(row.connectionId) + '" data-calendar="' + esc(row.calendar.id) + '" data-id="' + esc(ev.id) + '"'
     return '<article class="row" role="listitem"' + accountStyle(row.connectionId) + '><div class="content"><div class="title">' + esc(ev.title || t('title')) + '</div><div class="meta identity">' + accountDot() + esc(calendarIdentity(row.connectionId,row.calendar,true)) + '</div><div class="meta">' + esc(when(ev)) + '</div><div class="meta">' + esc((ev.recurringEventId ? t('recurring') + ' · ' : '') + (stale ? t('actionStale') : !enabled ? t('noMeet') : '')) + '</div></div><div class="actions"><button type="button" data-action="open"' + attrs + (canOpen(row) ? '' : ' disabled') + '>' + esc(t('open')) + '</button>' + (enabled ? '<button type="button" data-action="join"' + attrs + '>' + esc(t('join')) + '</button>' : '') + '</div></article>'
   }).join('')
+  if (focus && focus.every(function(value) { return value !== null })) {
+    var buttons = listElement.querySelectorAll('button[data-action]')
+    for (var i = 0; i < buttons.length; i++) {
+      if (['data-connection','data-calendar','data-id','data-action'].every(function(key,j) { return buttons[i].getAttribute(key) === focus[j] }) && !buttons[i].disabled) { buttons[i].focus({ preventScroll: true }); break }
+    }
+  }
+  if (more) allKnown = false
   var next = list.filter(function(row) { return !row.event.allDay })[0]
   var nextText = next ? t('next',{event:next.event.title || t('title')}) + ' · ' + countdown(next.event) + ' · ' + calendarIdentity(next.connectionId,next.calendar,false) + (!ageFresh(next.calendar) ? ' · ' + t('stale') : '') : list.length ? t('allDay') + ' · ' + (list[0].event.title || t('title')) + ' · ' + calendarIdentity(list[0].connectionId,list[0].calendar,false) + (!ageFresh(list[0].calendar) ? ' · ' + t('stale') : '') : !ids.length ? t('none') : allKnown ? t('empty') : ids.some(function(id) { return !snapshots[id] }) ? t('loading') : t('unknown')
   document.getElementById('next').textContent = nextText

@@ -19,6 +19,16 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
       addEventListener(type: string, cb: any) { handlers[id + ':' + type] = cb } })
     return elements.get(id)
   }
+  const document: any = { activeElement: null, getElementById: element, documentElement: { lang: 'en', style: { setProperty() {} } } }
+  const listElement = element('list')
+  let listHtml = ''
+  Object.defineProperty(listElement, 'innerHTML', { get: () => listHtml, set: (value: string) => { listHtml = value; if (document.activeElement?.inList) document.activeElement = null } })
+  listElement.contains = (value: any) => value?.inList === true
+  listElement.querySelectorAll = (selector: string) => selector !== 'button[data-action]' ? [] :
+    [...listHtml.matchAll(/<button\b[^>]*data-action="[^"]+"[^>]*>/g)].map(match => {
+      const attributes = Object.fromEntries([...match[0].matchAll(/(data-[a-z]+)="([^"]*)"/g)].map(item => [item[1], item[2]]))
+      return { inList: true, disabled: /\sdisabled[\s>]/.test(match[0]), getAttribute: (key: string) => attributes[key] ?? null, focus() { document.activeElement = this } }
+    })
   const api = { locale, compact, slot: 'right', settings: { accounts: ['account-a', 'account-b'], max: 8 }, size: { px: { width: 800, height: compact ? 80 : 600 } },
     esc: (value: any) => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!)),
     t: (value: any, params: any = {}) => String(value[api.locale] || value.en).replace(/\{(\w+)\}/g, (_, k) => String(params[k])),
@@ -26,7 +36,7 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
     subscribe: (channel: string, cb: any) => { const sub = { channel, cb, stopped: false }; subscriptions.push(sub); if (channel in fixtures) cb(fixtures[channel]); return () => { sub.stopped = true } },
     sendCommand: (...args: any[]) => { commands.push(args); return typeof result === 'function' ? result() : Promise.resolve(result) } }
   runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)?.[1] || '', {
-    Fremkit: api, document: { getElementById: element, documentElement: { lang: 'en', style: { setProperty() {} } } },
+    Fremkit: api, document,
     Date: class extends Date { static now() { return now } }, Intl, setInterval() {}, console,
   })
   const family = id === 'gmail-inbox' ? 'gmail' : 'google-calendar'
@@ -37,6 +47,8 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
     filter: (which: string, value: string) => { element(which).value = value; handlers[which + ':change']?.({ target: element(which) }) },
     text: () => [...elements.values()].filter(e => !e.hidden).map(e => e.textContent + e.innerHTML).join(' '),
     rows: () => elements.get('list')?.innerHTML || '',
+    focus: (action: string, account = 'account-a', calendar = 'primary', id = 'same-id') => { document.activeElement = listElement.querySelectorAll('button[data-action]').find((button: any) => button.getAttribute('data-action') === action && button.getAttribute('data-connection') === account && button.getAttribute('data-calendar') === calendar && button.getAttribute('data-id') === id) },
+    focused: () => document.activeElement && ['data-connection','data-calendar','data-id','data-action'].map(key => document.activeElement.getAttribute(key)),
     click: (action: string, connectionId = 'account-a', itemId = 'same-id', calendarId = 'primary') => handlers['list:click']?.({ target: { closest: () => ({ getAttribute: (key: string) => ({ 'data-action': action, 'data-connection': connectionId, 'data-id': itemId, 'data-calendar': calendarId }[key]) }) } }) }
 }
 const settle = () => new Promise(resolve => setImmediate(resolve))
@@ -125,6 +137,23 @@ describe('Calendar presentation', () => {
     const widget = load('google-calendar', { 'google-calendar:account-a': agenda('account-a', []) })
     widget.filter('calendarFilter', JSON.stringify(['account-a', 'primary']))
     expect(widget.elements.get('next')?.textContent).toContain('No upcoming events')
+  })
+  it.each(['account', 'calendar'])('does not call truncated %s results an empty agenda', source => {
+    const data = agenda('account-a', [])
+    if (source === 'account') data.truncated = true
+    else data.calendars[0].truncated = true
+    const widget = load('google-calendar', { 'google-calendar:account-a': data })
+    widget.settings(['account-a'])
+    expect(widget.elements.get('next')?.textContent).not.toContain('No upcoming events')
+    expect(widget.elements.get('summary')?.textContent).toContain('More events available')
+  })
+  it('keeps focus on the exact account, calendar, event and action after a snapshot refresh', () => {
+    const shared = agenda('account-a', [event('account-a', 'primary', 'same-id')])
+    const other = agenda('account-b', [event('account-b', 'primary', 'same-id')])
+    const widget = load('google-calendar', { 'google-calendar:account-a': shared, 'google-calendar:account-b': other })
+    widget.focus('join', 'account-b')
+    widget.update('account-a', agenda('account-a', [event('account-a', 'primary', 'same-id')]))
+    expect(widget.focused()).toEqual(['account-b', 'primary', 'same-id', 'join'])
   })
   it('distinguishes connected empty agenda from unknown and unauthorized', () => {
     const widget = load('google-calendar', { 'google-calendar:account-a': agenda('account-a', []) })

@@ -1,6 +1,6 @@
 ## 1.0.4
 
-- End all-day events on the calendar's local date, and keep event controls reachable in short tiles.
+- End all-day events on the calendar's local date, and keep event controls reachable in short tiles. Truncated empty results remain unknown, and refreshes preserve the focused Open or Join control.
 
 ## 1.0.3
 
