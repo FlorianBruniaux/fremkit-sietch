@@ -39,6 +39,18 @@ describe('Companion extension packaging',()=>{
   expect(active.paused).toBe(false)
   expect(result.currentTime).toBe(2)
  })
+ it('chooses the nearest visible Short when no renderer is marked active',async()=>{
+  const script=readFileSync(new URL('../../extensions/youtube-xeneon/worker.js',import.meta.url),'utf8')
+  const video=(top:number,time:number)=>({paused:true,currentTime:time,duration:100,muted:false,volume:1,getBoundingClientRect:()=>({x:0,y:top,left:0,top,right:500,bottom:top+500,width:500,height:500}),closest:()=>null,play(){this.paused=false;return Promise.resolve()},pause(){this.paused=true}})
+  const adjacent=video(-100,1),centered=video(250,2)
+  const chrome={runtime:{onMessage:{addListener() {}}},tabs:{get:async()=>({url:'https://www.youtube.com/shorts/abcdefghijk'}),onRemoved:{addListener(){}},onUpdated:{addListener(){}}},scripting:{executeScript:async({func,args}:any)=>[{result:func(...args)}]}}
+  const context={chrome,URL,document:{querySelectorAll:()=>[adjacent,centered],title:'Short - YouTube'},location:{pathname:'/shorts/abcdefghijk',href:'https://www.youtube.com/shorts/abcdefghijk'},innerWidth:1000,innerHeight:1000}
+  runInNewContext(script,context)
+  const result=await (context as any).inspect(1,{action:'toggle'})
+  expect(adjacent.paused).toBe(true)
+  expect(centered.paused).toBe(false)
+  expect(result.currentTime).toBe(2)
+ })
 })
 
 describe('Chrome offscreen runtime boundary',()=>{
