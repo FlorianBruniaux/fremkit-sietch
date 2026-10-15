@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Fremkit YouTube XENEON",
+  "version": "1.0.0",
+  "description": "Share the selected YouTube video with your local Fremkit dashboard.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabCapture",
+    "offscreen",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "action": {
+    "default_title": "YouTube sur le XENEON",
+    "default_popup": "popup.html"
+  }
+}

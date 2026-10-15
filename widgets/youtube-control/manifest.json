@@ -1,0 +1,33 @@
+{
+  "id": "youtube-control",
+  "name": {
+    "fr": "YouTube depuis Chrome",
+    "en": "YouTube from Chrome"
+  },
+  "version": "1.0.0",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "Vid\u00e9o de l\u2019onglet Chrome choisi, affichage et commandes via le pont local",
+    "en": "Selected Chrome tab video and controls through the local bridge"
+  },
+  "category": "media",
+  "icon": "play",
+  "minSize": [
+    24,
+    10
+  ],
+  "defaultSize": [
+    64,
+    16
+  ],
+  "subscriptions": [
+    "youtube"
+  ],
+  "commands": [
+    "youtube"
+  ],
+  "permissions": {
+    "network": []
+  }
+}
