@@ -96,7 +96,7 @@
     }
     // The same offline error on both Ollama lists is redundant.
     if (snapshot && snapshot.loaded && snapshot.installed && snapshot.loaded.error === 'offline' && snapshot.installed.error === 'offline') {
-      byId('installedStatus').textContent = ''
+      byId('installedStatus').textContent = snapshot.installed.stale ? t('stale') : ''
     }
   }
   Fremkit.whenReady(function () {

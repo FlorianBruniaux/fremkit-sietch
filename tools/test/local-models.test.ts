@@ -41,6 +41,13 @@ describe('Local model widget', () => {
     expect(view.element('mlx').innerHTML).toContain('CPU 1.1%')
   })
 
+  it('keeps the installed stale warning when both Ollama sources are offline', () => {
+    const view = widget({ loaded: part(null, 'offline'), installed: part([{ name: 'cached', size: 1 }], 'offline', true), mlx: part([]) })
+    expect(view.element('loadedStatus').textContent).toBe('Ollama is not running')
+    expect(view.element('installedStatus').textContent).toBe('Stale data')
+    expect(view.element('installed').innerHTML).toContain('cached')
+  })
+
   it('shows stale, invalid and offline states independently', () => {
     const view = widget({ loaded: part([], 'invalid', true), installed: part([], null), mlx: part(null, 'offline') }, 'fr')
     expect(view.element('loadedStatus').textContent).toBe('Données anciennes · Données illisibles')
