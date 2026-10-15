@@ -19,6 +19,16 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
       addEventListener(type: string, cb: any) { handlers[id + ':' + type] = cb } })
     return elements.get(id)
   }
+  const document: any = { activeElement: null, getElementById: element, documentElement: { lang: 'en', style: { setProperty() {} } } }
+  const listElement = element('list')
+  let listHtml = ''
+  Object.defineProperty(listElement, 'innerHTML', { get: () => listHtml, set: (value: string) => { listHtml = value; if (document.activeElement?.inList) document.activeElement = null } })
+  listElement.contains = (value: any) => value?.inList === true
+  listElement.querySelectorAll = (selector: string) => selector !== 'button[data-action]' ? [] :
+    [...listHtml.matchAll(/<button\b[^>]*data-action="[^"]+"[^>]*>/g)].map(match => {
+      const attributes = Object.fromEntries([...match[0].matchAll(/(data-[a-z]+)="([^"]*)"/g)].map(item => [item[1], item[2]]))
+      return { inList: true, disabled: /\sdisabled[\s>]/.test(match[0]), getAttribute: (key: string) => attributes[key] ?? null, focus() { document.activeElement = this } }
+    })
   const api = { locale, compact, slot: 'right', settings: { accounts: ['account-a', 'account-b'], max: 8 }, size: { px: { width: 800, height: compact ? 80 : 600 } },
     esc: (value: any) => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!)),
     t: (value: any, params: any = {}) => String(value[api.locale] || value.en).replace(/\{(\w+)\}/g, (_, k) => String(params[k])),
@@ -26,7 +36,7 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
     subscribe: (channel: string, cb: any) => { const sub = { channel, cb, stopped: false }; subscriptions.push(sub); if (channel in fixtures) cb(fixtures[channel]); return () => { sub.stopped = true } },
     sendCommand: (...args: any[]) => { commands.push(args); return typeof result === 'function' ? result() : Promise.resolve(result) } }
   runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)?.[1] || '', {
-    Fremkit: api, document: { getElementById: element, documentElement: { lang: 'en', style: { setProperty() {} } } },
+    Fremkit: api, document,
     Date: class extends Date { static now() { return now } }, Intl, setInterval() {}, console,
   })
   const family = id === 'gmail-inbox' ? 'gmail' : 'google-calendar'
@@ -37,6 +47,8 @@ function load(id: string, fixtures: Record<string, any> = {}, locale = 'en', res
     filter: (which: string, value: string) => { element(which).value = value; handlers[which + ':change']?.({ target: element(which) }) },
     text: () => [...elements.values()].filter(e => !e.hidden).map(e => e.textContent + e.innerHTML).join(' '),
     rows: () => elements.get('list')?.innerHTML || '',
+    focus: (account = 'account-a', id = 'same-id') => { document.activeElement = listElement.querySelectorAll('button[data-action]').find((button: any) => button.getAttribute('data-connection') === account && button.getAttribute('data-id') === id) },
+    focused: () => document.activeElement && ['data-connection','data-id','data-action'].map(key => document.activeElement.getAttribute(key)),
     click: (action: string, connectionId = 'account-a', itemId = 'same-id', calendarId = 'primary') => handlers['list:click']?.({ target: { closest: () => ({ getAttribute: (key: string) => ({ 'data-action': action, 'data-connection': connectionId, 'data-id': itemId, 'data-calendar': calendarId }[key]) }) } }) }
 }
 const settle = () => new Promise(resolve => setImmediate(resolve))
@@ -58,6 +70,15 @@ describe('Gmail presentation', () => {
     widget.click('open'); widget.click('open', 'account-b')
     expect(widget.commands).toEqual([]); expect(widget.text()).toContain('Browser account routing is unverified')
     expect(widget.rows()).toContain('disabled')
+  })
+  it('retains focus on the same account and message after another account refreshes', () => {
+    const enabled = { available: true, reason: null }
+    const a = mail('account-a', [{ ...message(), open: enabled }])
+    const b = mail('account-b', [{ ...message(), open: enabled }])
+    const widget = load('gmail-inbox', { 'gmail:account-a': a, 'gmail:account-b': b })
+    widget.focus('account-b')
+    widget.update('account-a', mail('account-a', [{ ...message(), open: enabled }]))
+    expect(widget.focused()).toEqual(['account-b', 'same-id', 'open'])
   })
   it('puts missing dates last without treating them as current', () => {
     const widget = load('gmail-inbox', { 'gmail:account-a': mail('account-a', [{ ...message('unknown', null), subject: 'Unknown date' }, { ...message('known', now - 100), subject: 'Known date' }]) })

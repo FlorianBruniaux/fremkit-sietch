@@ -1,6 +1,6 @@
 ## 1.0.3
 
-- Keep mail rows reachable when several accounts fill a short tile.
+- Keep mail rows reachable when several accounts fill a short tile, and preserve keyboard focus on the same Open button during refreshes.
 - Preserve Open feedback while another account refreshes; clear it when the opened account changes.
 - An unfinished page of unread mail no longer appears as a confirmed empty inbox.
 

@@ -247,10 +247,18 @@ function render() {
     return '<div class="status" data-state="' + stateKind(s) + '"' + accountStyle(id) + '><strong>' + accountDot() + esc(label(id)) + '</strong><br>' + esc(estimate) + '<br><span class="state">' + esc(state(s) + empty) + '</span></div>'
   }).join('')
   document.getElementById('route').textContent = t(list.some(function(row){return row.message.open && row.message.open.reason==='accountRoutingUnverified'})?'route':'browserHelp')
-  document.getElementById('list').innerHTML = shown.map(function(row) {
+  var listElement = document.getElementById('list'), activeControl = document.activeElement
+  var focus = activeControl && listElement.contains(activeControl) ? ['data-connection','data-id','data-action'].map(function(key) { return activeControl.getAttribute(key) }) : null
+  listElement.innerHTML = shown.map(function(row) {
     var m = row.message, snap = snapshots[row.connectionId]
     return '<article class="row" role="listitem"' + accountStyle(row.connectionId) + '><div class="content"><div class="title">' + esc(m.subject || t('subject')) + '</div><div class="sender">' + esc(m.sender || t('sender')) + '</div><div class="meta identity">' + accountDot() + esc(label(row.connectionId)) + '</div><div class="meta">' + esc(typeof m.receivedAt === 'number' && Number.isFinite(m.receivedAt) ? timestamp(m.receivedAt) : t('date')) + (ageFresh(snap) ? '' : ' · ' + esc(t('stale'))) + '</div></div><div class="actions"><button type="button" data-action="open" data-connection="' + esc(row.connectionId) + '" data-id="' + esc(m.id) + '"' + (canOpen(row) ? '' : ' disabled') + '>' + esc(t('open')) + '</button></div></article>'
   }).join('')
+  if (focus && focus.every(function(value) { return value !== null })) {
+    var buttons = listElement.querySelectorAll('button[data-action]')
+    for (var i = 0; i < buttons.length; i++) {
+      if (['data-connection','data-id','data-action'].every(function(key,j) { return buttons[i].getAttribute(key) === focus[j] }) && !buttons[i].disabled) { buttons[i].focus({ preventScroll: true }); break }
+    }
+  }
   var summary = !ids.length ? t('none') : t('shown',{n:shown.length,total:list.length}) + (more ? ' · ' + t('more') : '') + (incomplete ? ' · ' + t('partial') : '')
   document.getElementById('feedback').hidden=!feedbackKey
   document.getElementById('feedback').textContent=feedbackKey?t(feedbackKey):''
