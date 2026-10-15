@@ -43,56 +43,16 @@ describe('GitHub Actions touch stability', () => {
   })
 })
 
-describe('GitHub Actions readable summary',()=>{
-  const run=(id:string,status:string,conclusion?:string,repo='owner/repo')=>({id,status,conclusion,repo,name:'Workflow',branch:'main',updatedAt:Date.now()})
-  it('counts loaded runs from selected repositories before row display limits',()=>{
-    const runs=[run('1','running'),run('2','queued'),run('3','completed','success'),run('4','completed','failure'),run('5','completed','timed_out'),run('6','completed','cancelled'),run('7','completed','failure','other/repo')]
-    const w=load('github-actions',{runs,notifications:[],reviewRequests:[],myPrs:[]},undefined,{repos:['owner/repo'],max:1,history:1},'fr')
-    expect(w.elements.get('runningCount').textContent).toBe('1')
-    expect(w.elements.get('queuedCount').textContent).toBe('1')
-    expect(w.elements.get('successCount').textContent).toBe('1')
-    expect(w.elements.get('failureCount').textContent).toBe('2')
-    expect(w.elements.get('summaryNote').textContent).toBe('6 exécutions chargées · 2 affichées')
-    expect(w.elements.get('scroll').innerHTML).toContain('En cours')
-    expect(w.commands).toEqual([])
-  })
-  it('uses unknown counters when the runs source is unavailable, while preserving old rows',()=>{
-    const data={runs:[run('1','completed','failure')],notifications:[],reviewRequests:[],myPrs:[],errors:{runs:'forbidden'}}
-    const w=load('github-actions',data)
-    expect(w.elements.get('failureCount').textContent).toBe('?')
-    expect(w.elements.get('summaryNote').textContent).toContain('unavailable')
-    expect(w.elements.get('scroll').innerHTML).toContain('Workflow')
-  })
-  it('labels success and timeout with icons and text, independent of color',()=>{
-    const w=load('github-actions',{runs:[run('1','completed','success'),run('2','completed','timed_out')],notifications:[],reviewRequests:[],myPrs:[]},undefined,{},'fr')
-    expect(w.elements.get('scroll').innerHTML).toContain('Réussi')
-    expect(w.elements.get('scroll').innerHTML).toContain('Délai dépassé')
-    expect(w.elements.get('scroll').innerHTML).toContain('<svg')
-    expect(w.html).toContain('service-icon')
-  })
-  it('shows fresh empty counts as zero without guessing failures',()=>{
-    const w=load('github-actions')
-    expect(w.elements.get('failureCount').textContent).toBe('0')
-    expect(w.elements.get('summaryNote').textContent).toBe('0 loaded runs · 0 shown')
-  })
-})
-
-
 describe('GitHub Actions destination', () => {
   it('opens a saved run through the host command', () => {
     const widget = load('github-actions')
     widget.click({ 'data-id': '123', 'data-kind': 'run' })
     expect(widget.commands).toEqual([['github:gh-test', 'open', { kind: 'run', id: '123' }]])
   })
-})
-
-describe('GitHub Actions repository filters', () => {
-  it('narrows runs by owner and repository before counting', () => {
-    const run = (id: string, repo: string) => ({ id, repo, name: 'Workflow ' + id, status: 'completed', conclusion: 'success', branch: 'main', updatedAt: Date.now() })
-    const widget = load('github-actions', { runs: [run('1', 'alpha/api'), run('2', 'beta/web')], notifications: [], reviewRequests: [], myPrs: [] })
-    widget.filter('ownerFilter', 'alpha')
-    expect(widget.elements.get('summaryNote').textContent).toContain('1 loaded runs')
-    expect(widget.elements.get('scroll').innerHTML).toContain('alpha/api')
-    expect(widget.elements.get('scroll').innerHTML).not.toContain('beta/web')
+  it('keeps each row as a large button without drawing a second tile title', () => {
+    const run = { id: '123', repo: 'owner/repo', name: 'Workflow', status: 'completed', conclusion: 'success', branch: 'main', updatedAt: Date.now() }
+    const widget = load('github-actions', { runs: [run], notifications: [], reviewRequests: [], myPrs: [] })
+    expect(widget.elements.get('scroll').innerHTML).toContain('<button type="button" class="row')
+    expect(widget.html).not.toContain('<h2>GitHub Actions</h2>')
   })
 })

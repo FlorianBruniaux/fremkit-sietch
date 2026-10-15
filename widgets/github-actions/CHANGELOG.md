@@ -4,30 +4,11 @@ What changed for the person using this widget, version by version. The format fo
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the newest version is first, and the
 entry of the version being published is what the Fremkit admin shows before an update.
 
-## 1.1.4
-
-### Added
-- Filter loaded runs by GitHub owner and repository, with counters recalculated before row limits.
-
-## 1.1.3
-
-### Added
-- Show local GitHub and status icons, visible state labels, and loaded run counts. An unavailable counter stays distinct from zero.
-
-## 1.1.2
+## 1.1.4 — 2026-10-15
 
 ### Changed
-- Increase touch targets to 56 pixels and improve text hierarchy without changing click actions or compact mode.
-
-## 1.1.1
-
-### Fixed
-- Keep workflow buttons in place while their timers update, so a touch is not lost to a replaced row.
-
-## 1.1.0
-
-### Fixed
-- Open the selected run in the Mac browser through Fremkit's GitHub command.
+- Workflow rows are finger-sized buttons. Their elements remain in place while elapsed time updates, so a touch is not lost.
+- Touch a run to open its saved GitHub page in the Mac browser. The widget now requests the `github:*` command permission, which prompts for consent when updated.
 
 ## 1.0.1 — 2026-09-18
 
