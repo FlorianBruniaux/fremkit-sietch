@@ -1,0 +1,23 @@
+widgets/docker-containers/index.html
+  s_e827e256e15185::t_999aa377bbe91e 59,65-68,78-81,179-180,183
+tools/test/docker-containers.test.ts
+  s_e827e256e15185::t_60e427b9fe0dee 146-154
+widgets/docker-containers/CHANGELOG.md
+  s_e827e256e15185::t_7dab8dc33c7f08 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8891c4cde962a878204514a8b086f05710494e1e",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
