@@ -1,0 +1,56 @@
+{
+  "id": "google-calendar",
+  "name": {
+    "fr": "Agenda Google",
+    "en": "Google Calendar"
+  },
+  "version": "1.0.3",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "Agenda par compte et calendrier, liens Meet validés",
+    "en": "Account and calendar agenda with validated Meet links"
+  },
+  "category": "productivity",
+  "icon": "calendar",
+  "minSize": [
+    12,
+    8
+  ],
+  "defaultSize": [
+    24,
+    16
+  ],
+  "compact": {
+    "width": 10
+  },
+  "subscriptions": [
+    "google-calendar:*"
+  ],
+  "commands": [
+    "google-calendar:*"
+  ],
+  "permissions": {
+    "network": []
+  },
+  "settingsSchema": {
+    "accounts": {
+      "type": "connections",
+      "connectionType": "google",
+      "connectionService": "google-calendar",
+      "label": {
+        "fr": "Comptes Google",
+        "en": "Google accounts"
+      }
+    },
+    "max": {
+      "type": "number",
+      "default": 8,
+      "scope": "tile",
+      "label": {
+        "fr": "Lignes affichées (1–30)",
+        "en": "Rows shown (1–30)"
+      }
+    }
+  }
+}

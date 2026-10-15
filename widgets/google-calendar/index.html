@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Google Calendar</title>
+<style>
+html,body{margin:0;height:100%;background:transparent;color:var(--on-surface,var(--text,#e6e8eb));font-family:var(--font,-apple-system,system-ui,sans-serif);overflow:hidden}
+*{box-sizing:border-box}[hidden]{display:none!important}
+.wrap{height:100%;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.filters{display:flex;gap:10px;flex-wrap:wrap}.filter{flex:1;min-width:140px;display:flex;flex-direction:column;gap:4px}
+label,.meta,.status,.notice{font-size:calc(15px * var(--text-scale,1));line-height:1.4}.meta,.status,.notice,label{color:inherit;opacity:.85}
+select,button{font:inherit;font-size:calc(16px * var(--text-scale,1));color:inherit;background:rgba(128,128,128,.12);border:1px solid rgba(128,128,128,.4);border-radius:8px;min-height:56px;padding:8px 12px}
+select{width:100%;max-width:100%;text-overflow:ellipsis}select option{color:var(--text,#e6e8eb);background:var(--surface,#22252b)}
+html.on-light select option{color:var(--on-surface,#121419);background:var(--surface,#fff)}
+button:not(:disabled){cursor:pointer}button:disabled{opacity:.65;cursor:default}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent,#d9b36a);outline-offset:2px}
+#feedback{border-left:4px solid var(--accent,#d9b36a);padding:10px 12px;opacity:1;font-weight:600}
+#accounts{display:flex;gap:8px;flex-wrap:wrap}.status{flex:1;min-width:160px;padding:8px 10px;border:1px solid rgba(128,128,128,.35);border-radius:8px;overflow-wrap:anywhere}.status strong{font-weight:600}
+#list{flex:1;min-height:0;overflow:auto;touch-action:pan-y;display:flex;flex-direction:column;gap:10px;padding:2px 3px}
+.row{display:flex;gap:12px;align-items:center;min-height:96px;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,.08);flex-shrink:0}
+.content{flex:1;min-width:0}.title{font-size:calc(20px * var(--text-scale,1));font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sender{font-size:calc(17px * var(--text-scale,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.identity{overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-shrink:0}.notice{flex-shrink:0;overflow-wrap:anywhere}.next{font-size:calc(18px * var(--text-scale,1));line-height:1.4;flex-shrink:0}
+html.on-light .row{background:rgba(0,0,0,.05)}html.accent-fill button:focus-visible,html.accent-fill select:focus-visible{outline-color:var(--on-surface,#fff)}
+.cwrap{display:none;height:100%;width:100%;align-items:center;padding:0 calc(var(--h,80px) * .1)}.cline{min-width:0;max-height:100%;font-size:calc(clamp(14px,calc(var(--h,80px) * .23),18px) * var(--text-scale,1));line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:pre-line}
+html.compact .wrap{display:none}html.compact .cwrap{display:flex}html.compact.slot-right .cwrap{justify-content:flex-end;text-align:right}
+@media(max-width:520px){.wrap{padding:10px;gap:8px}.row{align-items:stretch;flex-direction:column;gap:8px}.actions{justify-content:flex-end}.title{font-size:calc(18px * var(--text-scale,1))}.status{min-width:120px}}
+
+.service{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:calc(19px * var(--text-scale,1));font-weight:650;line-height:1.2}.service-icon{width:30px;height:30px;flex-shrink:0}.cwrap{gap:10px}.cwrap .service-icon{width:24px;height:24px}
+.account-dot{display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:50%;background:var(--account-color,var(--accent,#d9b36a));box-shadow:0 0 0 1px currentColor;flex-shrink:0}.status{border-left:4px solid var(--account-color,var(--accent,#d9b36a));opacity:1}.row{border-left:4px solid var(--account-color,var(--accent,#d9b36a))}.state{opacity:.85}.state::before{content:'';display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--accent,#d9b36a)}[data-state="fresh"] .state::before{background:var(--success,#69c99a)}[data-state="stale"] .state::before{background:var(--warning,#f0c269)}[data-state="unavailable"] .state::before{background:var(--danger,#f48787)}html.on-light [data-state="fresh"] .state::before{background:var(--success,#177245)}html.on-light [data-state="stale"] .state::before{background:var(--warning,#8f5900)}html.on-light [data-state="unavailable"] .state::before{background:var(--danger,#b3261e)}html.accent-fill .service-icon{filter:drop-shadow(0 0 1px currentColor)}
+</style></head>
+<body><div class="wrap"><div class="service"><svg class="service-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="#4285f4" d="M3 3h26v26H3z"/><path fill="#fff" d="M8 8h16v16H8z"/><path fill="#34a853" d="M8 24h16v5H8z"/><path fill="#fbbc04" d="M24 8h5v16h-5z"/><path fill="#ea4335" d="M24 24h5l-5 5z"/><path fill="#1967d2" d="M3 3h5v5H3z"/><path fill="#4285f4" d="M11 11h6v2l-3 3h3v2l-3 3h-3v-2h2l2-1h-4v-2l3-3h-3zm9 0h2v10h-2v-7h-2v-2z"/></svg><span>Google Calendar</span></div>
+<div class="filters"><div class="filter"><label id="accountLabel" for="accountFilter"></label><select id="accountFilter"></select></div><div class="filter"><label id="calendarLabel" for="calendarFilter"></label><select id="calendarFilter"></select></div></div>
+<div id="accounts"></div>
+<div class="next" id="next"></div><div class="notice" id="feedback" role="status" aria-live="polite" hidden></div>
+<div class="notice" id="route"></div><div id="list" role="list"></div><div class="notice" id="summary"></div><div class="notice" id="setup"></div>
+</div><div class="cwrap"><svg class="service-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="#4285f4" d="M3 3h26v26H3z"/><path fill="#fff" d="M8 8h16v16H8z"/><path fill="#34a853" d="M8 24h16v5H8z"/><path fill="#fbbc04" d="M24 8h5v16h-5z"/><path fill="#ea4335" d="M24 24h5l-5 5z"/><path fill="#1967d2" d="M3 3h5v5H3z"/><path fill="#4285f4" d="M11 11h6v2l-3 3h3v2l-3 3h-3v-2h2l2-1h-4v-2l3-3h-3zm9 0h2v10h-2v-7h-2v-2z"/></svg><div class="cline" id="compact"></div></div>
+<script>
+var L = {
+  selectedUnavailable: {fr:'Calendrier sélectionné indisponible : {calendar}',en:'Selected calendar unavailable: {calendar}'},
+  "allAccounts": {
+    "fr": "Tous les comptes",
+    "en": "All accounts"
+  },
+  "account": {
+    "fr": "Compte",
+    "en": "Account"
+  },
+  "accountUnknown": {
+    "fr": "Identité du compte inconnue",
+    "en": "Account identity unknown"
+  },
+  "loading": {
+    "fr": "Chargement…",
+    "en": "Loading…"
+  },
+  "unknown": {
+    "fr": "Données inconnues",
+    "en": "Data unknown"
+  },
+  "stale": {
+    "fr": "Périmé",
+    "en": "Stale"
+  },
+  "updated": {
+    "fr": "Mis à jour : {time}",
+    "en": "Updated: {time}"
+  },
+  "setup": {
+    "fr": "Dans l’administration : Connexions → Google, autorisez ou reconnectez le compte ; puis sélectionnez les comptes dans les paramètres du widget.",
+    "en": "In admin: Connections → Google, authorize or reconnect the account; then select accounts in widget settings."
+  },
+  "none": {
+    "fr": "Aucun compte sélectionné",
+    "en": "No account selected"
+  },
+  "route": {
+    "fr": "Le routage du compte dans le navigateur n’est pas vérifié",
+    "en": "Browser account routing is unverified"
+  },
+  "open": {
+    "fr": "Ouvrir",
+    "en": "Open"
+  },
+  "shown": {
+    "fr": "{n} sur {total} chargés affichés",
+    "en": "Showing {n} of {total} loaded"
+  },
+  "partial": {
+    "fr": "Certains comptes ou calendriers sont indisponibles",
+    "en": "Some accounts or calendars are unavailable"
+  },
+  "unconfigured": {
+    "fr": "Compte non configuré",
+    "en": "Account not configured"
+  },
+  "unauthorized": {
+    "fr": "Autorisation requise",
+    "en": "Authorization required"
+  },
+  "forbidden": {
+    "fr": "Accès refusé",
+    "en": "Access denied"
+  },
+  "offline": {
+    "fr": "Hors ligne",
+    "en": "Offline"
+  },
+  "timeout": {
+    "fr": "Délai dépassé",
+    "en": "Request timed out"
+  },
+  "rateLimited": {
+    "fr": "Quota atteint",
+    "en": "Rate limited"
+  },
+  "malformed": {
+    "fr": "Données du fournisseur invalides",
+    "en": "Invalid provider data"
+  },
+  "calendars": {
+    "fr": "Calendrier",
+    "en": "Calendar"
+  },
+  "allCalendars": {
+    "fr": "Tous les calendriers sélectionnés",
+    "en": "All selected calendars"
+  },
+  "empty": {
+    "fr": "Aucun rendez-vous à venir",
+    "en": "No upcoming events"
+  },
+  "more": {
+    "fr": "Autres événements disponibles",
+    "en": "More events available"
+  },
+  "title": {
+    "fr": "(sans titre)",
+    "en": "(untitled)"
+  },
+  "allDay": {
+    "fr": "Journée entière",
+    "en": "All day"
+  },
+  "exclusive": {
+    "fr": "fin exclusive",
+    "en": "exclusive end"
+  },
+  "zoneUnknown": {
+    "fr": "Fuseau inconnu",
+    "en": "Time zone unknown"
+  },
+  "recurring": {
+    "fr": "Occurrence récurrente",
+    "en": "Recurring instance"
+  },
+  "join": {
+    "fr": "Rejoindre",
+    "en": "Join"
+  },
+  "noMeet": {
+    "fr": "Aucun lien Meet validé",
+    "en": "No validated Meet link"
+  },
+  "actionStale": {
+    "fr": "Action indisponible : données périmées",
+    "en": "Action unavailable: stale data"
+  },
+  "next": {
+    "fr": "Prochain rendez-vous : {event}",
+    "en": "Next meeting: {event}"
+  },
+  "minutes": {
+    "fr": "Dans {n} min",
+    "en": "In {n} min"
+  },
+  "later": {
+    "fr": "Dans plus de 24 h",
+    "en": "In more than 24 h"
+  },
+  "ongoing": {
+    "fr": "En cours",
+    "en": "In progress"
+  },
+  "joinFailed": {
+    "fr": "Impossible d’ouvrir la réunion",
+    "en": "Could not open meeting"
+  },
+  "joinOk": {
+    "fr": "Réunion ouverte sur le Mac",
+    "en": "Meeting opened on the Mac"
+  }
+}
+L.opening={fr:'Ouverture sur le Mac…',en:'Opening on the Mac…'}
+L.openOk={fr:'Événement ouvert sur le Mac',en:'Event opened on the Mac'}
+L.openFailed={fr:'Impossible d’ouvrir l’événement',en:'Could not open event'}
+L.browserHelp={fr:'Ouvrir et Rejoindre affichent la page dans le navigateur du Mac.',en:'Open and Join display the page in the Mac browser.'}
+L.fresh={fr:'À jour',en:'Up to date'}
+var FAMILY = 'google-calendar'
+var calendarFilter = '', feedbackKey = '', actionRevision = 0, unavailableCalendar = null
+var settings = {}, snapshots = Object.create(null), unsubs = [], generation = 0, accountFilter = '', maxRows = 8
+function t(key, params) { return Fremkit.t(L[key], params) }
+function esc(value) { return Fremkit.esc(value == null ? '' : value) }
+function selected() { return Array.isArray(settings.accounts) ? settings.accounts.filter(function(id, i, a) { return typeof id === 'string' && id.length > 0 && a.indexOf(id) === i }).slice(0,50) : [] }
+function active() { return selected().filter(function(id) { return !accountFilter || id === accountFilter }) }
+function label(id) { var s = snapshots[id]; return s && s.account && s.account.email ? s.account.email : t('accountUnknown') + ' · ' + id }
+function displayLabels(parts) { return parts.filter(function(value,i,all) { return typeof value==='string' && value.length>0 && all.indexOf(value)===i }).join(' · ') }
+function calendarIdentity(id,calendar,includeId) { return displayLabels([label(id),calendar.label,includeId?calendar.id:null]) }
+function accountColor(id) { var s=snapshots[id], color=s && s.account && s.account.color; return typeof color==='string' && /^#[0-9a-f]{6}$/i.test(color) ? color : 'var(--accent,#d9b36a)' }
+function accountStyle(id) { return ' style="--account-color:' + accountColor(id) + '"' }
+function accountDot() { return '<span class="account-dot" aria-hidden="true"></span>' }
+function stateKind(part) { return ageFresh(part) ? 'fresh' : part && part.freshness==='stale' || part && part.freshness==='fresh' ? 'stale' : 'unavailable' }
+function ageFresh(part) { return part && part.freshness === 'fresh' && !part.error && typeof part.updatedAt === 'number' && Number.isFinite(part.updatedAt) && Date.now() >= part.updatedAt && Date.now() - part.updatedAt <= 120000 }
+function timestamp(value) { if (typeof value !== 'number' || !Number.isFinite(value)) return t('unknown'); try { return new Intl.DateTimeFormat(Fremkit.locale === 'fr' ? 'fr-FR' : 'en-GB',{ dateStyle:'short',timeStyle:'short' }).format(new Date(value)) } catch (_) { return t('unknown') } }
+function state(part) { if (!part) return t('loading'); var bits = []; if (ageFresh(part)) bits.push(t('fresh')); if (part.freshness === 'stale' || (part.freshness === 'fresh' && !ageFresh(part))) bits.push(t('stale')); if (part.error) bits.push(t(Object.prototype.hasOwnProperty.call(L,part.error) ? part.error : 'malformed')); if (part.freshness === 'unavailable' || part.updatedAt == null) bits.push(t('unknown')); if (part.updatedAt != null) bits.push(t('updated',{time:timestamp(part.updatedAt)})); return bits.join(' · ') }
+function filters() { var select = document.getElementById('accountFilter'); select.innerHTML = '<option value="">' + esc(t('allAccounts')) + '</option>' + selected().map(function(id) { return '<option value="' + esc(id) + '">' + esc(label(id)) + '</option>' }).join(''); select.value = accountFilter; document.getElementById('accountLabel').textContent = t('account') }
+function resetSubscriptions() {
+  var token = ++generation
+  snapshots = Object.create(null)
+  unsubs.forEach(function(off) { off() }); unsubs = []
+  clearFeedback()
+  render() // Remove every prior account row before even a synchronous new subscription callback.
+  active().forEach(function(id) {
+    unsubs.push(Fremkit.subscribe(FAMILY + ':' + id,function(data) {
+      if (token !== generation || active().indexOf(id) < 0) return
+      if (!data || data.connectionId !== id) { delete snapshots[id]; render(); return }
+      clearFeedback(); snapshots[id] = data; render()
+    }))
+  })
+}
+function applySettings(next) {
+  var previous = JSON.stringify(selected()); settings = next || {}
+  maxRows = Math.min(30,Math.max(1,Math.floor(Number(settings.max) || 8)))
+  if (selected().indexOf(accountFilter) < 0) accountFilter = ''
+  if (previous !== JSON.stringify(selected())) { resetFilter(); resetSubscriptions() } else render()
+}
+function ready() {
+  document.documentElement.lang = Fremkit.locale
+  function size(next) { document.documentElement.style.setProperty('--h',next.px.height + 'px'); render() }
+  size(Fremkit.size); Fremkit.onResize(size)
+  Fremkit.onLocale(function(locale) { document.documentElement.lang = locale; render() })
+  document.getElementById('accountFilter').addEventListener('change',function(e) {
+    var value = e.target.value
+    if (value && selected().indexOf(value) < 0) return
+    if (accountFilter === value) return
+    accountFilter = value; resetFilter(); resetSubscriptions()
+  })
+  applySettings(Fremkit.settings); Fremkit.onSettings(applySettings)
+  setupActions()
+  setInterval(render,30000)
+}
+
+function resetFilter() { calendarFilter = ''; unavailableCalendar = null }
+function clearFeedback() { ++actionRevision; feedbackKey = '' }
+function calendars(id) { var s = snapshots[id]; return s && Array.isArray(s.calendars) ? s.calendars.filter(function(c) { return c && c.selected === true && typeof c.id === 'string' }) : [] }
+function matches(id,c) { return !calendarFilter || calendarFilter === JSON.stringify([id,c.id]) }
+function rows() {
+  var result = [], seen = Object.create(null)
+  active().forEach(function(id) { calendars(id).filter(function(c) { return matches(id,c) }).forEach(function(c) {
+    if (!Array.isArray(c.events)) return
+    c.events.forEach(function(event) {
+      if (!event || event.connectionId !== id || event.calendarId !== c.id || typeof event.id !== 'string' || !event.id || !Number.isFinite(event.start) || !Number.isFinite(event.end) || event.end <= Date.now()) return
+      var key = JSON.stringify([id,c.id,event.id]); if (seen[key]) return; seen[key] = true
+      result.push({ connectionId:id, calendar:c, event:event })
+    })
+  }) })
+  return result.sort(function(a,b) { return a.event.start - b.event.start || a.connectionId.localeCompare(b.connectionId) || a.calendar.id.localeCompare(b.calendar.id) || a.event.id.localeCompare(b.event.id) })
+}
+function reconcileCalendarFilter() {
+  if (unavailableCalendar && calendars(unavailableCalendar.connectionId).some(function(c) { return c.id === unavailableCalendar.calendarId })) unavailableCalendar = null
+  if (!calendarFilter) return
+  // Only exact tuples from the loaded selector can become the active filter.
+  var tuple = JSON.parse(calendarFilter)
+  if (calendars(tuple[0]).some(function(c) { return matches(tuple[0],c) })) return
+  unavailableCalendar = { connectionId:tuple[0], calendarId:tuple[1] }
+  calendarFilter = ''
+  clearFeedback() // A disappeared or unknown source invalidates every pending action revision.
+}
+function calendarOptions() {
+  var select = document.getElementById('calendarFilter'), options = '<option value="">' + esc(t('allCalendars')) + '</option>'
+  active().forEach(function(id) { calendars(id).forEach(function(c) { options += '<option value="' + esc(JSON.stringify([id,c.id])) + '">' + esc(calendarIdentity(id,c,true)) + '</option>' }) })
+  select.innerHTML = options; select.value = calendarFilter
+  document.getElementById('calendarLabel').textContent = t('calendars')
+}
+function when(event) {
+  if (event.allDay) return t('allDay') + ' · ' + (event.startDate || t('unknown')) + ' → ' + (event.endDate || t('unknown')) + ' (' + t('exclusive') + ')'
+  var options = { month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23' }
+  if (event.timeZone) options.timeZone = event.timeZone
+  try { var fmt = new Intl.DateTimeFormat(Fremkit.locale === 'fr' ? 'fr-FR' : 'en-GB',options); return fmt.format(new Date(event.start)) + ' → ' + fmt.format(new Date(event.end)) + ' · ' + (event.timeZone || t('zoneUnknown')) }
+  catch (_) { return timestamp(event.start) + ' · ' + t('zoneUnknown') }
+}
+function countdown(event) { var diff = event.start - Date.now(); return diff <= 0 ? t('ongoing') : diff > 86400000 ? t('later') : t('minutes',{n:Math.max(1,Math.ceil(diff/60000))}) }
+function canOpen(row) { var s=snapshots[row.connectionId];return !!(s && s.account && s.connectionId===row.connectionId && ageFresh(row.calendar) && row.event.open && row.event.open.available===true && row.event.open.reason===null) }
+function canJoin(row) {
+  var snap = snapshots[row.connectionId], ev = row.event
+  return !!(snap && snap.account && snap.connectionId === row.connectionId && ageFresh(row.calendar) && ev.join && ev.join.available === true && ev.join.reason === null && ev.end > Date.now())
+}
+function render() {
+  reconcileCalendarFilter(); filters(); calendarOptions()
+  var ids = active().filter(function(id) { return !calendarFilter || calendars(id).some(function(c) { return matches(id,c) }) }), list = rows(), shown = list.slice(0,maxRows), incomplete = false, more = false, allKnown = !!ids.length
+  document.getElementById('accounts').innerHTML = ids.map(function(id) {
+    var s = snapshots[id], cs = calendars(id).filter(function(c) { return matches(id,c) })
+    if (!s || !cs.length || cs.some(function(c) { return !ageFresh(c) || !Array.isArray(c.events) })) { incomplete = true; allKnown = false }
+    if (s && s.truncated) more = true
+    var unavailable = unavailableCalendar && unavailableCalendar.connectionId === id ? '<div>' + esc(t('selectedUnavailable',{calendar:unavailableCalendar.calendarId})) + '</div>' : ''
+    var details = cs.map(function(c) { if (c.truncated) more = true; return '<div>' + esc(displayLabels([c.label===label(id)?null:c.label,state(c)])) + '</div>' }).join('')
+    return '<div class="status" data-state="' + stateKind(s) + '"' + accountStyle(id) + '><strong>' + accountDot() + esc(label(id)) + '</strong><br><span class="state">' + esc(state(s)) + '</span>' + unavailable + details + '</div>'
+  }).join('')
+  document.getElementById('route').textContent = t(list.some(function(row){return row.event.open && row.event.open.reason==='accountRoutingUnverified'})?'route':'browserHelp')
+  document.getElementById('list').innerHTML = shown.map(function(row) {
+    var ev = row.event, enabled = canJoin(row), stale = !ageFresh(row.calendar)
+    var attrs = ' data-connection="' + esc(row.connectionId) + '" data-calendar="' + esc(row.calendar.id) + '" data-id="' + esc(ev.id) + '"'
+    return '<article class="row" role="listitem"' + accountStyle(row.connectionId) + '><div class="content"><div class="title">' + esc(ev.title || t('title')) + '</div><div class="meta identity">' + accountDot() + esc(calendarIdentity(row.connectionId,row.calendar,true)) + '</div><div class="meta">' + esc(when(ev)) + '</div><div class="meta">' + esc((ev.recurringEventId ? t('recurring') + ' · ' : '') + (stale ? t('actionStale') : !enabled ? t('noMeet') : '')) + '</div></div><div class="actions"><button type="button" data-action="open"' + attrs + (canOpen(row) ? '' : ' disabled') + '>' + esc(t('open')) + '</button>' + (enabled ? '<button type="button" data-action="join"' + attrs + '>' + esc(t('join')) + '</button>' : '') + '</div></article>'
+  }).join('')
+  var next = list.filter(function(row) { return !row.event.allDay })[0]
+  var nextText = next ? t('next',{event:next.event.title || t('title')}) + ' · ' + countdown(next.event) + ' · ' + calendarIdentity(next.connectionId,next.calendar,false) + (!ageFresh(next.calendar) ? ' · ' + t('stale') : '') : list.length ? t('allDay') + ' · ' + (list[0].event.title || t('title')) + ' · ' + calendarIdentity(list[0].connectionId,list[0].calendar,false) + (!ageFresh(list[0].calendar) ? ' · ' + t('stale') : '') : !ids.length ? t('none') : allKnown ? t('empty') : ids.some(function(id) { return !snapshots[id] }) ? t('loading') : t('unknown')
+  document.getElementById('next').textContent = nextText
+  var summary = (!list.length && !allKnown && ids.length ? t('unknown') : t('shown',{n:shown.length,total:list.length})) + (more ? ' · ' + t('more') : '') + (incomplete ? ' · ' + t('partial') : '')
+  document.getElementById('summary').textContent = summary
+  document.getElementById('setup').textContent = t('setup')
+  document.getElementById('feedback').hidden = !feedbackKey
+  document.getElementById('feedback').textContent = feedbackKey ? t(feedbackKey) : ''
+  document.getElementById('compact').textContent = (next ? calendarIdentity(next.connectionId,next.calendar,false) + '\n' + (next.event.title || t('title')) + ' · ' + countdown(next.event) + (!ageFresh(next.calendar) ? ' · ' + t('stale') : '') : nextText) + (incomplete ? ' · ' + t('partial') : '') + (!ids.length ? ' · ' + t('setup') : '')
+}
+function setupActions() {
+  document.getElementById('calendarFilter').addEventListener('change',function(e) {
+    var value = e.target.value
+    if (value && !active().some(function(id) { return calendars(id).some(function(c) { return value === JSON.stringify([id,c.id]) }) })) return
+    if (calendarFilter === value) return
+    calendarFilter = value; unavailableCalendar = null; clearFeedback(); render()
+  })
+  document.getElementById('list').addEventListener('click',function(e) {
+    var button = e.target.closest('button[data-action]'); if (!button) return
+    var kind=button.getAttribute('data-action');if(kind!=='join' && kind!=='open')return
+    var id = button.getAttribute('data-connection'), calendarId = button.getAttribute('data-calendar'), eventId = button.getAttribute('data-id')
+    // Never trust attributes or titles to authorize an action: resolve the current selected tuple.
+    var row = rows().slice(0,maxRows).filter(function(r) { return r.connectionId === id && r.calendar.id === calendarId && r.event.id === eventId })[0]
+    if (!row || !(kind==='join'?canJoin(row):canOpen(row))) return
+    clearFeedback()
+    var token = generation, revision = actionRevision, original = snapshots[id]
+    feedbackKey='opening'
+    render()
+    var result
+    try { result = Fremkit.sendCommand(FAMILY + ':' + id,kind,{ connectionId:id,calendarId:calendarId,eventId:eventId }) } catch (_) { result = Promise.reject(new Error('join failed')) }
+    Promise.resolve(result).then(function(answer) {
+      if (token !== generation || snapshots[id] !== original || revision !== actionRevision) return
+      feedbackKey = answer && answer.ok === true ? (kind==='join'?'joinOk':'openOk') : (kind==='join'?'joinFailed':'openFailed'); render()
+    },function() {
+      if (token !== generation || snapshots[id] !== original || revision !== actionRevision) return
+      feedbackKey = kind==='join'?'joinFailed':'openFailed'; render()
+    })
+  })
+}
+
+Fremkit.whenReady(ready)
+</script></body></html>
