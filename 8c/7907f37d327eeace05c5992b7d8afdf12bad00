@@ -1,0 +1,25 @@
+tools/test/youtube-widget.test.ts
+  s_e827e256e15185::t_abb6deb6c22cb7 42-53
+widgets/youtube-control/CHANGELOG.md
+  s_e827e256e15185::t_abb6deb6c22cb7 8
+extensions/youtube-xeneon/offscreen.js
+  s_e827e256e15185::t_5c42bce66ec314 3,6,18,20-21
+extensions/youtube-xeneon/worker.js
+  s_e827e256e15185::t_88bc5737c99a38 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8c7907f37d327eeace05c5992b7d8afdf12bad00",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
