@@ -1,0 +1,49 @@
+tools/test/github-inbox-controls.test.ts
+  s_3897878139c0ab::t_eca366fb034452 1-124
+widgets/github-inbox/CHANGELOG.md
+  s_e827e256e15185::t_1f3d58ad148e5f 7-31
+widgets/github-inbox/index.html
+  s_3605cf53b51080::t_9c24e9a0cb5049 14-15,29,32,52-60,63-65,67-68,76-84,88-91,122-124,134-164,179,186-187,190,192-193,198,212-220,222-225,227,250-251,254-256,258,269-270,273,299-301,310,320,323-338
+widgets/github-inbox/manifest.json
+  s_64104967e715dd::t_0c1f2bfbaa0228 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1bd82ad8e6355370ce57e78226a36ea00c4ebda0",
+  "prompts": {},
+  "sessions": {
+    "s_3605cf53b51080": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13694-acd3-7190-8d33-691c11d3d458",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    },
+    "s_3897878139c0ab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f44-d04e-7ed3-a930-cc3216505433",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    },
+    "s_64104967e715dd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f31-c9b6-7f52-adc8-1ffb8966e03b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    },
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
