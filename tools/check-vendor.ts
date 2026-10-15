@@ -25,7 +25,9 @@ const root = fileURLToPath(new URL('..', import.meta.url))
  * answer: are these copies the ones that were taken. Bumping it is part of the commit that
  * copies new files over, and that commit is where the decision belongs.
  */
-const VENDOR_REF = '08a48e0536a9f0d98b6fcf73c6968e0966e0ed86'
+// Until fdussert/fremkit#20 lands, pin the exact reviewed fork commit that supplies this schema.
+const VENDOR_REPO = 'FlorianBruniaux/fremkit'
+const VENDOR_REF = 'e713bd22145066132a82be67b9c1847861e5bbe1'
 
 /**
  * Where the upstream files are read from. The default is the raw view of the pinned commit,
@@ -33,7 +35,7 @@ const VENDOR_REF = '08a48e0536a9f0d98b6fcf73c6968e0966e0ed86'
  * this repository *before* pushing it — which is the only moment the answer can still be acted
  * on cheaply, and the only way to run this at all before the commit exists on GitHub.
  */
-const UPSTREAM = process.env.FREMKIT_RAW_BASE || `https://raw.githubusercontent.com/fdussert/fremkit/${VENDOR_REF}`
+const UPSTREAM = process.env.FREMKIT_RAW_BASE || `https://raw.githubusercontent.com/${VENDOR_REPO}/${VENDOR_REF}`
 
 /** local path under tools/vendor → path under the main repository. */
 const COPIES: Record<string, string> = {
@@ -125,7 +127,7 @@ async function main(): Promise<void> {
     for (const p of problems) console.error(`FAIL ${p}`)
     process.exit(1)
   }
-  console.log(`vendored schema is in step with fremkit ${VENDOR_REF.slice(0, 12)}`)
+  console.log(`vendored schema is in step with ${VENDOR_REPO}@${VENDOR_REF.slice(0, 12)}`)
 }
 
 main().catch((err: Error) => {
