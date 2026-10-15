@@ -1,0 +1,21 @@
+widgets/codex-usage/CHANGELOG.md
+  s_e827e256e15185::t_5a87d3a9767019 5-7
+widgets/codex-usage/index.html
+  s_e827e256e15185::t_43e0e3f996058c 7-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e59e72a01c02c372c39a4b23a378407985320f2c",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
