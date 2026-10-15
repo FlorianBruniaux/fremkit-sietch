@@ -24,6 +24,21 @@ describe('Companion extension packaging',()=>{
   for(const file of ['worker.js','popup.js','offscreen.js'])expect(()=>new Script(readFileSync(new URL(file,folder),'utf8'))).not.toThrow()
   const sender=readFileSync(new URL('offscreen.js',folder),'utf8');expect(sender).toContain('audio:false');expect(sender).toContain('iceServers:[]');expect(sender).not.toMatch(/stun:|turn:/)
  })
+
+ it('controls the visible Short instead of a retained offscreen player',async()=>{
+  const script=readFileSync(new URL('../../extensions/youtube-xeneon/worker.js',import.meta.url),'utf8')
+  const rect=(top:number)=>({x:0,y:top,left:0,top,right:500,bottom:top+500,width:500,height:500})
+  const first={paused:true,currentTime:1,duration:100,muted:false,volume:1,getBoundingClientRect:()=>rect(-900),closest:()=>null,play(){throw Error('wrong player')},pause(){throw Error('wrong player')}}
+  const active={paused:true,currentTime:2,duration:100,muted:false,volume:1,getBoundingClientRect:()=>rect(100),closest:()=>({}),play(){this.paused=false;return Promise.resolve()},pause(){this.paused=true}}
+  const chrome={runtime:{onMessage:{addListener() {}}},tabs:{get:async()=>({url:'https://www.youtube.com/shorts/abcdefghijk'}),onRemoved:{addListener(){}},onUpdated:{addListener(){}}},scripting:{executeScript:async({func,args}:any)=>[{result:func(...args)}]}}
+  const context={chrome,URL,document:{querySelectorAll:()=>[first,active],title:'Short - YouTube'},location:{pathname:'/shorts/abcdefghijk',href:'https://www.youtube.com/shorts/abcdefghijk'},innerWidth:1000,innerHeight:1000}
+  runInNewContext(script,context)
+  const inspect=(context as any).inspect
+  const result=await inspect(1,{action:'toggle'})
+  expect(first.paused).toBe(true)
+  expect(active.paused).toBe(false)
+  expect(result.currentTime).toBe(2)
+ })
 })
 
 describe('Chrome offscreen runtime boundary',()=>{
