@@ -1,0 +1,19 @@
+tools/vendor/widgets/manifest.ts
+  s_e827e256e15185::t_2b045da4c87ac8 106-107,120-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53b2f6c0c7f2ecaf629c5f8247218cf1aa3e1840",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
