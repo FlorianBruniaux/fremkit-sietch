@@ -1,0 +1,26 @@
+widgets/gmail-inbox/manifest.json
+  s_e827e256e15185::t_e9953bd3ad047f 7
+widgets/gmail-inbox/index.html
+  s_e827e256e15185::t_2f833b7ba2e752 6,16,155,182-183,210,218
+  s_e827e256e15185::t_e9953bd3ad047f 181
+tools/test/gmail-inbox.test.ts
+  s_e827e256e15185::t_e9953bd3ad047f 142-153
+widgets/gmail-inbox/CHANGELOG.md
+  s_e827e256e15185::t_e9953bd3ad047f 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f3caaa174421fc059bfb794806211cc02256dc6",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
