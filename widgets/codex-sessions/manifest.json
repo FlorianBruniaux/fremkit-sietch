@@ -1,0 +1,37 @@
+{
+  "id": "codex-sessions",
+  "name": {
+    "fr": "Sessions Codex",
+    "en": "Codex sessions"
+  },
+  "version": "1.2.0",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "Sessions par projet, modèles, durées des tours et sous-agents observés",
+    "en": "Sessions grouped by project, models, observed turn durations and subagents"
+  },
+  "category": "ai",
+  "icon": "history",
+  "minSize": [
+    12,
+    6
+  ],
+  "defaultSize": [
+    20,
+    12
+  ],
+  "compact": {
+    "width": 6
+  },
+  "subscriptions": [
+    "codex",
+    "codex-live"
+  ],
+  "commands": [
+    "codex"
+  ],
+  "permissions": {
+    "network": []
+  }
+}

@@ -1,0 +1,4 @@
+## 1.2.0
+
+### Added
+- Show up to 50 local Codex chats in compact cards grouped by saved project. Cards include observed model, turn duration and direct subagents when available. Touch a validated card to open that exact chat in Codex.
