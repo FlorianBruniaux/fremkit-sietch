@@ -7,13 +7,48 @@ const snapshot = (id = 'a') => ({ connectionId: id, account: { email: id+'@examp
 function load(fixtures: Record<string, any> = { a: snapshot(), b: snapshot('b') }, result: any = { ok: true }) {
   const html = readFileSync(new URL('../../widgets/google-tasks/index.html', import.meta.url), 'utf8')
   const elements = new Map<string, any>(), handlers: Record<string, any> = {}, callbacks: Record<string, any> = {}, subs: any[] = [], commands: any[] = []
-  const el = (id: string) => { if (!elements.has(id)) elements.set(id, { innerHTML: '', textContent: '', hidden: false, value: '', addEventListener: (event: string, f: any) => { handlers[id+':'+event] = f } });return elements.get(id) }
+  const doc: any = { activeElement: null, documentElement: { lang: 'en' } }
+  const el = (id: string) => {
+    if (!elements.has(id)) elements.set(id, { innerHTML: '', textContent: '', hidden: false, value: '', addEventListener: (event: string, f: any) => { handlers[id+':'+event] = f } })
+    return elements.get(id)
+  }
+  const board: any = { scrollLeft: 0, columns: [] as any[], html: '', hidden: false, textContent: '', addEventListener: (event: string, f: any) => { handlers['board:'+event] = f },
+    get innerHTML() { return this.html },
+    set innerHTML(value: string) {
+      this.html = value
+      this.columns = [...value.matchAll(/<section class="column"[^>]*data-account="([^"]+)" data-list="([^"]+)"[^>]*>/g)].map(match => {
+        const start = match.index!, end = value.indexOf('</section>', start), body = value.slice(start, end)
+        const items = { scrollTop: 0 }
+        const buttons = [...body.matchAll(/<button[^>]*data-connection="([^"]+)" data-list="([^"]+)" data-task="([^"]+)"[^>]*>/g)].map(hit => ({
+          getAttribute: (key: string) => ({ 'data-connection': hit[1], 'data-list': hit[2], 'data-task': hit[3] } as Record<string, string>)[key],
+          closest() { return this },
+          focus() { doc.activeElement = this },
+        }))
+        return { buttons, querySelector: () => items, getAttribute: (key: string) => ({ 'data-account': match[1], 'data-list': match[2] } as Record<string, string>)[key] }
+      })
+    },
+    querySelectorAll(selector: string) { return selector === '.column' ? this.columns : this.columns.flatMap((column: any) => column.buttons) },
+    contains(button: any) { return this.columns.some((column: any) => column.buttons.includes(button)) },
+  }
+  elements.set('board', board)
+  doc.getElementById = el
   const api = { locale: 'en', settings: { accounts: ['a','b'] }, t: (value: any, params: Record<string,any> = {}) => String(value[api.locale] || value.en).replace(/\{(\w+)\}/g, (_, k) => String(params[k])), esc: (v: any) => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!)), whenReady: (f: any) => f(), onSettings: (f: any) => { callbacks.settings = f }, onLocale: (f: any) => { callbacks.locale = f }, subscribe: (channel: string, f: any) => { const s={ channel, f, stopped: false };subs.push(s);if (fixtures[channel.split(':')[1]])f(fixtures[channel.split(':')[1]]);return () => {s.stopped=true} }, sendCommand: (...args: any[]) => {commands.push(args);return typeof result==='function'?result():Promise.resolve(result)} }
-  runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)![1], { Fremkit: api, document: { getElementById: el, documentElement: { lang: 'en' } }, Date: class extends Date { static now() {return now} }, Intl, setInterval(){} })
-  return { elements, commands, subs, board: () => el('board').innerHTML, text: () => [...elements.values()].filter(x=>!x.hidden).map(x=>x.innerHTML+x.textContent).join(' '), filter: (id: string,value: string) => {el(id).value=value;handlers[id+':change']({ target: el(id) })}, update: (id: string, data: any) => subs.filter(s=>s.channel==='google-tasks:'+id).at(-1)?.f(data), settings: (accounts: string[]) => callbacks.settings({accounts}), locale: (locale: string) => {api.locale=locale;callbacks.locale(locale)}, click: (id='a',list='shared',taskId='same') => handlers['board:click']({target:{closest:()=>({getAttribute:(k:string)=>({'data-connection':id,'data-list':list,'data-task':taskId}[k])})}}) }
+  runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)![1], { Fremkit: api, document: doc, Date: class extends Date { static now() {return now} }, Intl, setInterval(){} })
+  return { elements, commands, subs, dom: { board, doc }, board: () => el('board').innerHTML, text: () => [...elements.values()].filter(x=>!x.hidden).map(x=>x.innerHTML+x.textContent).join(' '), filter: (id: string,value: string) => {el(id).value=value;handlers[id+':change']({ target: el(id) })}, update: (id: string, data: any) => subs.filter(s=>s.channel==='google-tasks:'+id).at(-1)?.f(data), settings: (accounts: string[]) => callbacks.settings({accounts}), locale: (locale: string) => {api.locale=locale;callbacks.locale(locale)}, click: (id='a',list='shared',taskId='same') => handlers['board:click']({target:{closest:()=>({getAttribute:(k:string)=>({'data-connection':id,'data-list':list,'data-task':taskId}[k])})}}) }
 }
 const settle=()=>new Promise(r=>setImmediate(r))
 describe('Google Tasks board',()=>{
+  it('preserves the current list position and focused task through another account refresh',()=>{
+    const w=load(),first=w.dom.board.columns[0]
+    w.dom.board.scrollLeft=180
+    first.querySelector().scrollTop=90
+    first.buttons[0].focus()
+    w.update('b',snapshot('b'))
+    expect(w.dom.board.scrollLeft).toBe(180)
+    expect(w.dom.board.columns[0].querySelector().scrollTop).toBe(90)
+    expect(w.dom.doc.activeElement.getAttribute('data-connection')).toBe('a')
+    expect(w.dom.doc.activeElement.getAttribute('data-task')).toBe('same')
+  })
   it('shows all selected accounts as separate list columns, escapes titles and preserves dates',()=>{
     const w=load();expect(w.board()).toContain('a@example.com');expect(w.board()).toContain('b@example.com');expect(w.board()).toContain('&lt;b&gt;Example task&lt;/b&gt;');expect(w.board()).toContain('12 Oct 2026');expect(w.board()).not.toContain('<b>Example task');expect(w.text()).toContain('2 tasks shown');expect(w.board()).toContain('--account-color:#335577')
   })
