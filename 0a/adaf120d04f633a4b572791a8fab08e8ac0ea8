@@ -1,0 +1,25 @@
+widgets/google-calendar/manifest.json
+  s_e827e256e15185::t_395ba41eda7cdc 7
+widgets/google-calendar/CHANGELOG.md
+  s_e827e256e15185::t_395ba41eda7cdc 1-4
+widgets/google-calendar/index.html
+  s_e827e256e15185::t_395ba41eda7cdc 6,16,254-267,273
+tools/test/google-calendar.test.ts
+  s_e827e256e15185::t_943727b96a0735 69-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0aadaf120d04f633a4b572791a8fab08e8ac0ea8",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
