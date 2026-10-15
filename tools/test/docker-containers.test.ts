@@ -143,6 +143,15 @@ describe('Docker containers widget', () => {
     expect(widget.get('filter-stopped').textContent).toBe('Stopped (3)')
   })
 
+  it('does not repeat a state when Docker status contains only that state', () => {
+    const created = container('created')
+    created.status = 'Created'
+    const widget = load(snapshot([created]), 'fr')
+    widget.filter('all')
+    expect(widget.get('list').innerHTML).toContain('>Créé</div>')
+    expect(widget.get('list').innerHTML).not.toContain('Créé · Created')
+  })
+
   it('keeps measured values and question marks beside labelled icons', () => {
     const stats = { cpu: '2%', memory: '1MiB / 2GiB', netIO: '0B', blockIO: '0B' }
     const widget = load(snapshot([container('running', 'measured', stats), container('exited', 'unknown')]), 'fr')

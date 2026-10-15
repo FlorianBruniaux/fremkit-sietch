@@ -56,21 +56,29 @@
   .meta { font-size: calc(11px * var(--text-scale, 1)); color: var(--text-muted, currentColor); overflow-wrap: anywhere; }
   .pill {
     display: inline-block;
+    max-width: 100%;
     margin: 4px 0;
     padding: 2px 6px;
     border: 1px solid currentColor;
     border-radius: 5px;
     font-size: calc(11px * var(--text-scale, 1));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
   }
   .pill.running { color: var(--ok, currentColor); }
   .pill.stopped { color: var(--text-muted, currentColor); }
-  .pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
   .metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: calc(12px * var(--text-scale, 1)); }
   .metric { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
   .metric span { overflow-wrap: anywhere; }
   .metric svg { width: 16px; height: 16px; flex: none; color: var(--accent, currentColor); }
   .metric.memory svg { color: var(--text-muted, currentColor); }
   .io { color: var(--text-muted, currentColor); font-size: calc(11px * var(--text-scale, 1)); }
+  html.on-light .filters button[aria-pressed="true"] {
+    background: rgba(128, 128, 128, .2);
+    color: var(--on-surface, #0b0d10);
+  }
   html.accent-fill .summary, html.accent-fill .meta, html.accent-fill .io,
   html.accent-fill .pill, html.accent-fill .metric svg { color: var(--on-surface); }
   html.accent-fill .filters button[aria-pressed="true"] {
@@ -168,9 +176,11 @@
     var stats = container.stats
     var state = stateLabel(container.state)
     var stateClass = container.state === 'running' ? 'running' : 'stopped'
+    var status = String(container.status || '').trim()
+    var detail = status.toLowerCase() === container.state.toLowerCase() ? '' : ' · ' + esc(status)
     var html = '<div class="card"><div class="name">' + esc(container.name)
       + '</div><div class="meta">' + esc(container.image)
-      + '</div><div class="pill ' + stateClass + '">' + esc(state) + ' · ' + esc(container.status)
+      + '</div><div class="pill ' + stateClass + '">' + esc(state) + detail
       + '</div><div class="metrics">' + metric('cpu', stats ? stats.cpu : '?')
       + metric('memory', stats ? stats.memory : '?') + '</div>'
     if (stats) {
