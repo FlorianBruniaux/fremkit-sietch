@@ -66,6 +66,8 @@ pnpm build         # the same, plus dist/index.json, dist/widgets/*.zip and dist
 pnpm check-vendor  # the vendored schema is still Fremkit's
 ```
 
+The account-service manifest copy is pinned to [the Fremkit fork PR](https://github.com/fdussert/fremkit/pull/20) while that feature is in review. After it merges, update the pinned commit and source repository in `tools/check-vendor.ts` to the upstream commit.
+
 `pnpm validate` and `pnpm build` read the index currently on Pages, so a version that does not go
 up is refused before merge, and older releases stay downloadable for a rollback.
 
