@@ -1,0 +1,56 @@
+{
+  "id": "gmail-inbox",
+  "name": {
+    "fr": "Boîte Gmail",
+    "en": "Gmail inbox"
+  },
+  "version": "1.0.3",
+  "sdk": 1,
+  "license": "MIT",
+  "description": {
+    "fr": "En-têtes non lus par compte sélectionné",
+    "en": "Unread headers from selected accounts"
+  },
+  "category": "productivity",
+  "icon": "mail",
+  "minSize": [
+    12,
+    8
+  ],
+  "defaultSize": [
+    24,
+    16
+  ],
+  "compact": {
+    "width": 10
+  },
+  "subscriptions": [
+    "gmail:*"
+  ],
+  "commands": [
+    "gmail:*"
+  ],
+  "permissions": {
+    "network": []
+  },
+  "settingsSchema": {
+    "accounts": {
+      "type": "connections",
+      "connectionType": "google",
+      "connectionService": "gmail",
+      "label": {
+        "fr": "Comptes Google",
+        "en": "Google accounts"
+      }
+    },
+    "max": {
+      "type": "number",
+      "default": 8,
+      "scope": "tile",
+      "label": {
+        "fr": "Lignes affichées (1–30)",
+        "en": "Rows shown (1–30)"
+      }
+    }
+  }
+}
