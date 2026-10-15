@@ -1,7 +1,219 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Docker containers</title><style>html,body{margin:0;height:100%;background:transparent;color:var(--on-surface,var(--text,#e6e8eb));font-family:var(--font,system-ui,sans-serif)}*{box-sizing:border-box}.wrap{height:100%;padding:18px;display:flex;flex-direction:column;gap:12px}h2,h3{margin:0}h2{display:flex;align-items:center;gap:12px;font-size:calc(24px * var(--text-scale,1))}.service-icon{flex:none;width:32px;height:32px;color:#52b6ed}html.on-light .service-icon{color:#1476aa}.subtitle,.meta{font-size:calc(15px * var(--text-scale,1));opacity:.8;line-height:1.5}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px;overflow:auto;min-height:0}.card{padding:16px;border:1px solid var(--border,#464c56);border-radius:12px;min-width:0}.name{font-size:calc(20px * var(--text-scale,1));font-weight:650;overflow-wrap:anywhere}.pill{display:inline-block;border-radius:6px;padding:4px 8px;margin:8px 0;border:1px solid currentColor}.running{color:var(--ok,#2fb36b)}.stopped{opacity:.75}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:calc(17px * var(--text-scale,1))}.list{overflow:auto;min-height:0}.section{margin-bottom:18px}.status{border-left:3px solid var(--accent,#d9b36a);padding-left:8px;line-height:1.5}.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px;overflow:auto;min-height:0}.row{padding:14px 0;border-bottom:1px solid var(--border,#464c56)}html.on-light .meta{opacity:.85}.meta{overflow-wrap:anywhere}.status:empty{display:none}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.filters{display:flex;gap:8px}.filters button{min-height:56px;min-width:100px;padding:10px 16px;border:1px solid var(--border,#464c56);border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:calc(17px * var(--text-scale,1));cursor:pointer}.filters button[aria-pressed="true"]{border-color:var(--accent,#d9b36a);box-shadow:inset 0 -3px var(--accent,#d9b36a);font-weight:700}.filters button:focus-visible{outline:3px solid var(--accent,#d9b36a);outline-offset:2px}.metric{display:flex;align-items:flex-start;gap:8px;min-width:0}.metric>span{overflow-wrap:anywhere}.metric-icon{width:22px;height:22px;flex:none}.cpu-icon{color:#52b6ed}.memory-icon{color:#bb9aff}html.on-light .cpu-icon{color:#1476aa}html.on-light .memory-icon{color:#7450a8}.filters{gap:0;padding:4px;border:1px solid var(--border,#464c56);border-radius:14px}.filters button{border:0;min-width:112px;border-radius:10px}.filters button[aria-pressed="true"]{background:var(--border,#303642);box-shadow:inset 0 -3px var(--accent,#d9b36a)}.filters button::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor}#filter-active::before{background:var(--ok,#2fb36b)}#filter-stopped::before{background:#a8adb5}#filter-all::before{background:#52b6ed}</style></head><body><div class="wrap"><div class="toolbar"><h2><svg class="service-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13h20c-1 5-5 8-11 8-5 0-8-3-9-8ZM20 13v-3l2 1M7 18h.01"/><rect x="4" y="9" width="4" height="4"/><rect x="8" y="9" width="4" height="4"/><rect x="12" y="9" width="4" height="4"/><rect x="8" y="5" width="4" height="4"/><rect x="12" y="5" width="4" height="4"/><rect x="12" y="1" width="4" height="4"/></svg>Docker</h2><div class="filters" role="group" id="filters"><button type="button" id="filter-active" aria-pressed="true"></button><button type="button" id="filter-stopped" aria-pressed="false"></button><button type="button" id="filter-all" aria-pressed="false"></button></div></div><div class="status" id="status"></div><div class="subtitle" id="summary"></div><div class="subtitle" id="empty" hidden></div><div class="cards" id="list"></div></div><script>var L={"cpu":{"fr":"CPU","en":"CPU"},"stoppedLabel":{"fr":"Arrêtés","en":"Stopped"},"stoppedFilter":{"fr":"Arrêtés ({n})","en":"Stopped ({n})"},"emptyStopped":{"fr":"Aucun conteneur arrêté","en":"No stopped containers"},"activeLabel":{"fr":"Actifs","en":"Running"},"allLabel":{"fr":"Tous","en":"All"},"activeFilter":{"fr":"Actifs ({n})","en":"Running ({n})"},"allFilter":{"fr":"Tous ({n})","en":"All ({n})"},"filterLabel":{"fr":"Filtrer les conteneurs","en":"Filter containers"},"emptyAll":{"fr":"Aucun conteneur","en":"No containers"},"loading": {"fr": "Chargement…", "en": "Loading…"}, "stale": {"fr": "Données anciennes", "en": "Stale data"}, "offline": {"fr": "Indisponible", "en": "Unavailable"}, "unknown": {"fr": "Inconnu", "en": "Unknown"}, "remote": {"fr": "Contexte Docker distant : suivi local désactivé", "en": "Remote Docker context: local monitoring disabled"}, "none": {"fr": "Aucun conteneur actif", "en": "No running containers"}, "total": {"fr": "{n} conteneur{plural}", "en": "{n} containers"}, "counts": {"fr": "{n} actif{pluralActive} / {total} conteneur{pluralTotal}", "en": "{n} running / {total} containers"}, "running": {"fr": "Actif", "en": "Running"}, "stopped": {"fr": "Arrêté", "en": "Stopped"}, "memory": {"fr": "Mémoire", "en": "Memory"}, "network": {"fr": "Réseau cumulé", "en": "Total network I/O"}, "io": {"fr": "Disque cumulé", "en": "Total disk I/O"}};var snapshot=null,filter='active';function t(k,p){return Fremkit.t(L[k],p)}function esc(v){return Fremkit.esc(v==null?'':v)}function state(p){return !p?t('loading'):(p.stale?t('stale')+' · ':'')+(p.error?t(p.error==='remote-context'?'remote':'offline'):'')}function gb(v){return v==null?t('unknown'):(v/1073741824).toLocaleString(Fremkit.locale,{maximumFractionDigits:1})+' '+(Fremkit.locale==='fr'?'Go':'GB')}
-function isStopped(c){return c.state==='exited'||c.state==='dead'||c.state==='created'}
-function metric(kind,value){var label=t(kind),path=kind==='cpu'?'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4M18 9h4m-4 6h4"/>':'<rect x="2" y="6" width="20" height="11" rx="2"/><path d="M6 10v3m4-3v3m4-3v3m4-3v3M6 17v3m4-3v3m4-3v3m4-3v3"/>';return '<span class="metric" role="img" title="'+esc(label)+'" aria-label="'+esc(label+' : '+value)+'"><svg class="metric-icon '+kind+'-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg><span>'+esc(value)+'</span></span>'}
-function render(){document.documentElement.lang=Fremkit.locale;var rows=snapshot&&snapshot.data&&snapshot.data.containers||[],running=rows.filter(function(c){return c.state==='running'}),stopped=rows.filter(isStopped);document.getElementById('status').textContent=state(snapshot);document.getElementById('summary').textContent=!snapshot||!snapshot.data?'':(running.length?t('counts',{n:running.length,total:rows.length,pluralActive:running.length===1?'':'s',pluralTotal:rows.length===1?'':'s'}):t('none')+' · '+t('total',{n:rows.length,plural:rows.length===1?'':'s'}));
-document.getElementById('filter-active').textContent=snapshot&&snapshot.data?t('activeFilter',{n:running.length}):t('activeLabel');document.getElementById('filter-stopped').textContent=snapshot&&snapshot.data?t('stoppedFilter',{n:stopped.length}):t('stoppedLabel');document.getElementById('filter-all').textContent=snapshot&&snapshot.data?t('allFilter',{n:rows.length}):t('allLabel');document.getElementById('filters').setAttribute('aria-label',t('filterLabel'));document.getElementById('filter-active').setAttribute('aria-pressed',String(filter==='active'));document.getElementById('filter-stopped').setAttribute('aria-pressed',String(filter==='stopped'));document.getElementById('filter-all').setAttribute('aria-pressed',String(filter==='all'));var visible=filter==='active'?running:filter==='stopped'?stopped:rows;document.getElementById('empty').hidden=!snapshot||!snapshot.data||visible.length>0;document.getElementById('empty').textContent=t(filter==='active'?'none':filter==='stopped'?'emptyStopped':'emptyAll');
-document.getElementById('list').innerHTML=visible.slice().sort(function(a,b){return (b.state==='running')-(a.state==='running')||a.name.localeCompare(b.name)}).map(function(c){var s=c.stats;return '<div class="card"><div class="name">'+esc(c.name)+'</div><div class="meta">'+esc(c.image)+'</div><div class="pill '+(c.state==='running'?'running':'stopped')+'">'+esc(c.state==='running'?t('running'):c.state==='exited'?t('stopped'):c.state)+' · '+esc(c.status)+'</div><div class="metrics">'+metric('cpu',s?s.cpu:'?')+metric('memory',s?s.memory:'?')+(s?'<span>'+esc(t('network'))+' '+esc(s.netIO)+'</span><span>'+esc(t('io'))+' '+esc(s.blockIO)+'</span>':'')+'</div></div>'}).join('');}
-Fremkit.whenReady(function(){document.getElementById('filter-active').addEventListener('click',function(){filter='active';render()});document.getElementById('filter-stopped').addEventListener('click',function(){filter='stopped';render()});document.getElementById('filter-all').addEventListener('click',function(){filter='all';render()});Fremkit.subscribe('docker-local',function(d){snapshot=d;render()});Fremkit.onLocale(render);render()});</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Containers</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    color: var(--on-surface, var(--text, #e6e8eb));
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  .wrap { height: 100%; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .summary, .status, .empty { font-size: calc(12px * var(--text-scale, 1)); line-height: 1.3; }
+  .summary { color: var(--text-muted, currentColor); }
+  .status { border-left: 3px solid var(--accent, currentColor); padding: 4px 8px; }
+  .status:empty { display: none; }
+  .filters { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border, currentColor); border-radius: 10px; }
+  .filters button {
+    min-height: 44px;
+    min-width: 90px;
+    padding: 5px 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: calc(13px * var(--text-scale, 1));
+    cursor: pointer;
+  }
+  .filters button[aria-pressed="true"] {
+    background: var(--surface-3, var(--border, #303642));
+    box-shadow: inset 0 -2px var(--accent, currentColor);
+    font-weight: 700;
+  }
+  .filters button:focus-visible { outline: 3px solid var(--accent, currentColor); outline-offset: 2px; }
+  .filters button::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: currentColor; }
+  #filter-active::before { background: var(--ok, currentColor); }
+  #filter-stopped::before { background: var(--text-muted, currentColor); }
+  #filter-all::before { background: var(--accent, currentColor); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    align-content: start;
+    gap: 7px;
+    overflow: auto;
+    min-height: 0;
+  }
+  .card { min-width: 0; padding: 9px; border: 1px solid var(--border, currentColor); border-radius: 9px; }
+  .name { font-size: calc(16px * var(--text-scale, 1)); font-weight: 650; overflow-wrap: anywhere; }
+  .meta { font-size: calc(11px * var(--text-scale, 1)); color: var(--text-muted, currentColor); overflow-wrap: anywhere; }
+  .pill {
+    display: inline-block;
+    margin: 4px 0;
+    padding: 2px 6px;
+    border: 1px solid currentColor;
+    border-radius: 5px;
+    font-size: calc(11px * var(--text-scale, 1));
+  }
+  .pill.running { color: var(--ok, currentColor); }
+  .pill.stopped { color: var(--text-muted, currentColor); }
+  .pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+  .metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: calc(12px * var(--text-scale, 1)); }
+  .metric { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+  .metric span { overflow-wrap: anywhere; }
+  .metric svg { width: 16px; height: 16px; flex: none; color: var(--accent, currentColor); }
+  .metric.memory svg { color: var(--text-muted, currentColor); }
+  .io { color: var(--text-muted, currentColor); font-size: calc(11px * var(--text-scale, 1)); }
+  html.accent-fill .summary, html.accent-fill .meta, html.accent-fill .io,
+  html.accent-fill .pill, html.accent-fill .metric svg { color: var(--on-surface); }
+  html.accent-fill .filters button[aria-pressed="true"] {
+    background: var(--on-surface);
+    color: var(--accent);
+    box-shadow: none;
+  }
+  html.accent-fill #filter-active::before, html.accent-fill #filter-stopped::before,
+  html.accent-fill #filter-all::before { background: currentColor; }
+  @media (max-height: 380px) {
+    .wrap { padding: 7px; gap: 5px; }
+    .card { padding: 6px 8px; }
+    .io { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <div class="summary" id="summary"></div>
+    <div class="filters" role="group" id="filters">
+      <button type="button" id="filter-active" aria-pressed="true"></button>
+      <button type="button" id="filter-stopped" aria-pressed="false"></button>
+      <button type="button" id="filter-all" aria-pressed="false"></button>
+    </div>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="empty" id="empty" hidden></div>
+  <div class="cards" id="list"></div>
+</div>
+<script>
+  var L = {
+    activeLabel: { fr: 'Actifs', en: 'Running' },
+    stoppedLabel: { fr: 'Arrêtés', en: 'Stopped' },
+    allLabel: { fr: 'Tous', en: 'All' },
+    activeFilter: { fr: 'Actifs ({n})', en: 'Running ({n})' },
+    stoppedFilter: { fr: 'Arrêtés ({n})', en: 'Stopped ({n})' },
+    allFilter: { fr: 'Tous ({n})', en: 'All ({n})' },
+    filterLabel: { fr: 'Filtrer les conteneurs', en: 'Filter containers' },
+    loading: { fr: 'Chargement…', en: 'Loading…' },
+    newerHost: { fr: 'Version plus récente de Fremkit nécessaire', en: 'Needs a newer Fremkit' },
+    stale: { fr: 'Données anciennes', en: 'Stale data' },
+    unavailable: { fr: 'Docker n’est pas installé', en: 'Docker is not installed' },
+    offline: { fr: 'Docker ne fonctionne pas', en: 'Docker is not running' },
+    invalid: { fr: 'Données Docker illisibles', en: 'Unreadable Docker data' },
+    remote: { fr: 'Contexte Docker distant : suivi local désactivé', en: 'Remote Docker context: local monitoring disabled' },
+    emptyActive: { fr: 'Aucun conteneur actif', en: 'No running containers' },
+    emptyStopped: { fr: 'Aucun conteneur arrêté', en: 'No stopped containers' },
+    emptyAll: { fr: 'Aucun conteneur', en: 'No containers' },
+    counts: { fr: '{running} actifs / {total} conteneurs', en: '{running} running / {total} containers' },
+    cpu: { fr: 'CPU', en: 'CPU' },
+    memory: { fr: 'Mémoire', en: 'Memory' },
+    network: { fr: 'Réseau cumulé', en: 'Total network I/O' },
+    io: { fr: 'Disque cumulé', en: 'Total disk I/O' },
+    stateRunning: { fr: 'Actif', en: 'Running' },
+    stateExited: { fr: 'Arrêté', en: 'Stopped' },
+    stateDead: { fr: 'Arrêté', en: 'Stopped' },
+    stateCreated: { fr: 'Créé', en: 'Created' },
+    statePaused: { fr: 'En pause', en: 'Paused' },
+    stateRestarting: { fr: 'Redémarrage', en: 'Restarting' },
+    stateRemoving: { fr: 'Suppression', en: 'Removing' },
+    stateUnknown: { fr: 'État inconnu', en: 'Unknown state' }
+  }
+  var snapshot = null
+  var filter = 'active'
+  var olderHost = false
+
+  function t(key, params) { return Fremkit.t(L[key], params) }
+  function esc(value) { return Fremkit.esc(value == null ? '' : value) }
+  function byId(id) { return document.getElementById(id) }
+  function isStopped(container) {
+    return container.state === 'exited' || container.state === 'dead' || container.state === 'created'
+  }
+  function stateLabel(value) {
+    var key = 'state' + value.charAt(0).toUpperCase() + value.slice(1)
+    return t(L[key] ? key : 'stateUnknown')
+  }
+  function statusText() {
+    if (!snapshot) return t(olderHost ? 'newerHost' : 'loading')
+    var error = snapshot.error
+    var message = error === 'remote-context' ? t('remote')
+      : error && L[error] ? t(error) : ''
+    return (snapshot.stale ? t('stale') : '') + (snapshot.stale && message ? ' · ' : '') + message
+  }
+  function metric(kind, value) {
+    var label = t(kind)
+    var path = kind === 'cpu'
+      ? '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4M18 9h4m-4 6h4"/>'
+      : '<rect x="2" y="6" width="20" height="11" rx="2"/><path d="M6 10v3m4-3v3m4-3v3m4-3v3m4-3v3m4-3v3"/>'
+    return '<span class="metric ' + kind + '" role="img" title="' + esc(label)
+      + '" aria-label="' + esc(label + ' : ' + value) + '"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+      + path + '</svg><span>' + esc(value) + '</span></span>'
+  }
+  function card(container) {
+    var stats = container.stats
+    var state = stateLabel(container.state)
+    var stateClass = container.state === 'running' ? 'running' : 'stopped'
+    var html = '<div class="card"><div class="name">' + esc(container.name)
+      + '</div><div class="meta">' + esc(container.image)
+      + '</div><div class="pill ' + stateClass + '">' + esc(state) + ' · ' + esc(container.status)
+      + '</div><div class="metrics">' + metric('cpu', stats ? stats.cpu : '?')
+      + metric('memory', stats ? stats.memory : '?') + '</div>'
+    if (stats) {
+      html += '<div class="io">' + esc(t('network')) + ': ' + esc(stats.netIO)
+        + ' · ' + esc(t('io')) + ': ' + esc(stats.blockIO) + '</div>'
+    }
+    return html + '</div>'
+  }
+  function render() {
+    document.documentElement.lang = Fremkit.locale
+    var rows = snapshot && snapshot.data ? snapshot.data.containers : []
+    var running = rows.filter(function (container) { return container.state === 'running' })
+    var stopped = rows.filter(isStopped)
+    var remote = snapshot && snapshot.error === 'remote-context' && !snapshot.data
+    byId('status').textContent = statusText()
+    byId('summary').textContent = snapshot && snapshot.data
+      ? t('counts', { running: running.length, total: rows.length }) : ''
+    byId('filters').hidden = !!remote
+    byId('filter-active').textContent = snapshot && snapshot.data ? t('activeFilter', { n: running.length }) : t('activeLabel')
+    byId('filter-stopped').textContent = snapshot && snapshot.data ? t('stoppedFilter', { n: stopped.length }) : t('stoppedLabel')
+    byId('filter-all').textContent = snapshot && snapshot.data ? t('allFilter', { n: rows.length }) : t('allLabel')
+    byId('filters').setAttribute('aria-label', t('filterLabel'))
+    for (var key of ['active', 'stopped', 'all']) {
+      byId('filter-' + key).setAttribute('aria-pressed', String(filter === key))
+    }
+    var visible = filter === 'active' ? running : filter === 'stopped' ? stopped : rows
+    byId('empty').hidden = !snapshot || !snapshot.data || visible.length > 0
+    byId('empty').textContent = t(filter === 'active' ? 'emptyActive' : filter === 'stopped' ? 'emptyStopped' : 'emptyAll')
+    byId('list').innerHTML = visible.slice().sort(function (a, b) {
+      return (b.state === 'running') - (a.state === 'running') || a.name.localeCompare(b.name)
+    }).map(card).join('')
+  }
+  Fremkit.whenReady(function () {
+    for (var key of ['active', 'stopped', 'all']) {
+      (function (selected) {
+        byId('filter-' + selected).addEventListener('click', function () { filter = selected; render() })
+      })(key)
+    }
+    Fremkit.subscribe('docker-local', function (data) { snapshot = data; render() })
+    Fremkit.onLocale(render)
+    setTimeout(function () { if (!snapshot) { olderHost = true; render() } }, 20000)
+    render()
+  })
+</script>
+</body>
+</html>

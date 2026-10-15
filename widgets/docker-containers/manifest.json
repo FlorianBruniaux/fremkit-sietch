@@ -4,7 +4,7 @@
     "fr": "Conteneurs Docker",
     "en": "Docker containers"
   },
-  "version": "1.0.5",
+  "version": "1.0.0",
   "sdk": 1,
   "license": "MIT",
   "description": {
@@ -18,8 +18,8 @@
     8
   ],
   "defaultSize": [
-    64,
-    16
+    32,
+    8
   ],
   "subscriptions": [
     "docker-local"
