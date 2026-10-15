@@ -98,6 +98,40 @@ describe('Codex history widget', () => {
   })
 })
 
+for (const id of ['codex-sessions']) {
+  describe(id + ' availability and language', () => {
+    it('shows loading before a snapshot', () => { expect(load(id).text()).toContain('Loading') })
+    it.each([['unconfigured', 'Not configured'], ['unauthorized', 'Account authorization required'], ['unsupported', 'Method unsupported'], ['offline', 'Offline'], ['invalid', 'Invalid provider data']])('distinguishes %s', (error, label) => {
+      const data = snapshot(); data.history = part(null, 'unavailable', error); data.quotas = part(null, 'unavailable', error); data.usage = part(null, 'unavailable', error)
+      expect(load(id, data).text()).toContain(label)
+    })
+    it('updates labels on a French locale change', () => {
+      const widget = load(id); widget.language('fr')
+      expect(widget.text()).toContain('Chargement')
+    })
+  })
+}
+
+describe('Codex current action feedback', () => {
+  it('shows opening and host success for the exact UUID', async () => {
+    let resolve: any
+    const widget=load('codex-sessions',snapshot(),'en',()=>new Promise(r=>{resolve=r}))
+    widget.click(second);expect(widget.commands).toEqual([])
+    widget.click(first);expect(widget.text()).toContain('Opening on the Mac')
+    expect(widget.commands).toEqual([['codex','open',{threadId:first}]])
+    resolve({ok:true});await new Promise(r=>setImmediate(r))
+    expect(widget.text()).toContain('Session opened on the Mac')
+    widget.language('fr');expect(widget.text()).toContain('Session ouverte sur le Mac')
+  })
+  it('drops obsolete feedback when a new snapshot replaces the selected history', async () => {
+    let resolve: any
+    const widget=load('codex-sessions',snapshot(),'en',()=>new Promise(r=>{resolve=r}))
+    widget.click(first);widget.update(snapshot([thread(second)]));resolve({ok:false})
+    await new Promise(r=>setImmediate(r))
+    expect(widget.text()).not.toContain('Could not open this stored session')
+    expect(widget.text()).not.toContain('Opening on the Mac')
+  })
+})
 describe('Codex observed session cards',()=>{
  const observed=(extra:any={})=>({id:first,parentId:null,state:'working',turnId:'turn-a',startedAt:now-420000,finishedAt:null,lastEventAt:now,model:'gpt-example',effort:'high',modelSource:'turn',durationMs:null,project:'example-project',branch:'main',nickname:null,role:null,agentName:null,subagents:[],agentsTruncated:false,...extra})
  const live=(sessions:any[])=>({sessions,updatedAt:now,error:null,truncated:false})
