@@ -4,7 +4,7 @@
     "fr": "IA locale",
     "en": "Local AI"
   },
-  "version": "1.0.1",
+  "version": "1.0.0",
   "sdk": 1,
   "license": "MIT",
   "description": {
@@ -18,8 +18,8 @@
     8
   ],
   "defaultSize": [
-    64,
-    16
+    32,
+    8
   ],
   "subscriptions": [
     "local-models"
