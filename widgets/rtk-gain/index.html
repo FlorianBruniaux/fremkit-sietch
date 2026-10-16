@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>RTK</title>
+<style>
+  html,body{margin:0;height:100%;background:transparent;color:var(--text, #e6e8eb);font-family:var(--font, -apple-system,system-ui,sans-serif);overflow:hidden}
+  .wrap{box-sizing:border-box;height:100%;padding:10px 18px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+  .head{display:flex;align-items:baseline;gap:12px;white-space:nowrap;min-width:0}
+  .big{font-size:calc(44px * var(--text-scale, 1));font-weight:600;line-height:1}
+  .pct{font-size:calc(22px * var(--text-scale, 1));font-weight:600;color:var(--accent, #d9b36a)}
+  .lbl{font-size:calc(14px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);overflow:hidden;text-overflow:ellipsis}
+  .foot{font-size:calc(14px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .note{font-size:calc(13px * var(--text-scale, 1));color:var(--text-muted, #8b93a0);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist{flex:1 1 0;min-height:0;max-height:90px;display:flex;align-items:flex-end;gap:3px}
+  .hist>i{flex:1;background:var(--border-strong, #3a404a);border-radius:2px 2px 0 0;min-height:2px}
+  .hist>i.now{background:var(--accent, #d9b36a)}
+  .stale .head,.stale .hist{opacity:.45}
+  [hidden]{display:none!important}
+  /* The host says which way round the tile is: on-light means dark text on a light body. */
+  html.on-light body{color:var(--on-surface,#0b0d10)}
+  html.on-light .lbl,html.on-light .foot,html.on-light .note{color:var(--on-surface,#0b0d10);opacity:.75}
+  /* On an accent-filled tile the accent bars and figures would vanish: they take the text colour. */
+  html.on-light .pct,html.accent-fill .pct{color:var(--on-surface,#0b0d10)}
+  html.on-light .hist>i,html.accent-fill .hist>i{background:rgba(128,128,128,.35)}
+  html.on-light .hist>i.now,html.accent-fill .hist>i.now{background:var(--on-surface,#0b0d10)}
+  /* Compact: one line in the navigation bar, sized from the bar height (--h). */
+  html.compact .wrap{display:none}
+  .cwrap{display:none}
+  html.compact .cwrap{display:flex;box-sizing:border-box;height:100%;width:100%;align-items:center;white-space:nowrap;
+    gap:calc(var(--h,80px) * .12);padding:0 calc(var(--h,80px) * .10)}
+  html.compact .clabel{font-size:calc(clamp(11px, calc(var(--h,80px) * .20), 18px) * var(--text-scale, 1));font-weight:600;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted, #8b93a0)}
+  html.compact .cval{font-size:calc(clamp(12px, calc(var(--h,80px) * .30), 28px) * var(--text-scale, 1));font-weight:600}
+  html.compact .cpct{font-size:calc(clamp(11px, calc(var(--h,80px) * .22), 20px) * var(--text-scale, 1));color:var(--accent, #d9b36a)}
+  html.compact.on-light .clabel,html.compact.on-light .cpct,html.compact.accent-fill .cpct{color:var(--on-surface,#0b0d10)}
+  html.compact.stale .cwrap{opacity:.45}
+  /* Right cluster: the bar pushes the iframe against the dots, so its content hugs that edge too. */
+  html.compact.slot-right .cwrap{justify-content:flex-end}
+</style></head>
+<body><div class="wrap" id="wrap">
+  <div class="note" id="note" hidden></div>
+  <div class="head" id="head"><span class="big" id="today"></span><span class="pct" id="pct"></span><span class="lbl" id="lbl"></span></div>
+  <div class="hist" id="hist"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<div class="cwrap" id="cwrap"><span class="clabel">RTK</span><span class="cval" id="cval"></span><span class="cpct" id="cpct"></span></div>
+<script>
+  var L = {
+    savedToday: { fr: 'économisés aujourd’hui', en: 'saved today' },
+    total: { fr: '{saved} économisés au total · {commands} commandes', en: '{saved} saved overall · {commands} commands' },
+    waiting: { fr: 'en attente de RTK…', en: 'waiting for RTK…' },
+    unsupported: { fr: 'cette version de Fremkit ne lit pas RTK', en: 'this Fremkit version does not read RTK' },
+    unavailable: { fr: 'RTK introuvable · brew install rtk', en: 'RTK not found · brew install rtk' },
+    offline: { fr: 'RTK ne répond pas', en: 'RTK is not responding' },
+    invalid: { fr: 'réponse RTK illisible', en: 'unreadable RTK output' },
+    staleSince: { fr: 'données d’il y a {m} min', en: 'data from {m} min ago' },
+    millions: { fr: '{n} M', en: '{n}M' },
+    thousands: { fr: '{n} k', en: '{n}k' }
+  }
+  var snap = null, waited = false
+  /** A decimal separator follows the language: a comma in French, a point in English. */
+  function dec(n, digits) { var text = n.toFixed(digits); return Fremkit.locale === 'fr' ? text.replace('.', ',') : text }
+  function tokens(n) {
+    if (n >= 1e6) return Fremkit.t(L.millions, { n: dec(n / 1e6, n >= 1e8 ? 0 : 1) })
+    if (n >= 1e4) return Fremkit.t(L.thousands, { n: Math.round(n / 1e3) })
+    if (n >= 1e3) return Fremkit.t(L.thousands, { n: dec(n / 1e3, 1) })
+    return String(Math.round(n))
+  }
+  function count(n) { return Math.round(n).toLocaleString(Fremkit.locale === 'fr' ? 'fr-FR' : 'en-US') }
+  /** Local `YYYY-MM-DD`, the date RTK files a day under. */
+  function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  /** One bar per calendar day, today last; a day RTK did not run is an empty bar, not a missing one. */
+  function bars(daily, days) {
+    var byDate = {}
+    daily.forEach(function (d) { byDate[d.date] = d.saved })
+    var out = [], now = new Date()
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      out.push(byDate[ymd(d)] || 0)
+    }
+    return out
+  }
+  function message() {
+    if (!snap) return waited ? Fremkit.t(L.unsupported) : Fremkit.t(L.waiting)
+    if (snap.error && !snap.data) return Fremkit.t(L[snap.error] || L.offline)
+    if (snap.stale && snap.updatedAt) return Fremkit.t(L.staleSince, { m: Math.max(1, Math.round((Date.now() - snap.updatedAt) / 60000)) })
+    return ''
+  }
+  function render() {
+    var data = snap && snap.data, note = message()
+    document.documentElement.classList.toggle('stale', !!(snap && snap.stale))
+    if (Fremkit.compact) {
+      document.getElementById('cval').textContent = data ? tokens(data.today.saved) : '—'
+      document.getElementById('cpct').textContent = data && data.today.commands ? Math.round(data.today.percent) + '%' : ''
+      return
+    }
+    var noteEl = document.getElementById('note')
+    noteEl.hidden = !note; noteEl.textContent = note
+    document.getElementById('head').hidden = !data
+    document.getElementById('hist').hidden = !data || Fremkit.size.h < 3
+    document.getElementById('foot').hidden = !data
+    if (!data) return
+    document.getElementById('today').textContent = tokens(data.today.saved)
+    document.getElementById('pct').textContent = data.today.commands ? Math.round(data.today.percent) + '%' : ''
+    document.getElementById('lbl').textContent = Fremkit.t(L.savedToday)
+    document.getElementById('foot').textContent = Fremkit.t(L.total, { saved: tokens(data.total.saved), commands: count(data.total.commands) })
+    var values = bars(data.daily, Number(Fremkit.settings.days) || 14), max = Math.max.apply(null, values) || 1
+    document.getElementById('hist').innerHTML = values.map(function (v, i) {
+      return '<i' + (i === values.length - 1 ? ' class="now"' : '') + ' style="height:' + Math.max(2, Math.round(v / max * 100)) + '%"></i>'
+    }).join('')
+  }
+  Fremkit.whenReady(function () {
+    /** The bar's height drives every compact size; the full layout ignores it. */
+    function applySize(size) { if (size && size.px) document.documentElement.style.setProperty('--h', size.px.height + 'px') }
+    applySize(Fremkit.size)
+    document.documentElement.lang = Fremkit.locale
+    Fremkit.subscribe('rtk', function (d) { snap = d; render() })
+    // A Fremkit older than the `rtk` channel never publishes on it: say so instead of waiting forever.
+    setTimeout(function () { waited = true; render() }, 15000)
+    Fremkit.onResize(function (size) { applySize(size); render() })
+    Fremkit.onSettings(render)
+    Fremkit.onLocale(function (locale) { document.documentElement.lang = locale; render() })
+    setInterval(render, 60000)
+    render()
+  })
+</script></body></html>

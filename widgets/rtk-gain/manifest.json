@@ -1,0 +1,14 @@
+{ "id": "rtk-gain", "name": { "fr": "Économies RTK", "en": "RTK savings" }, "version": "1.0.0",
+  "sdk": 1, "author": "usul", "license": "MIT", "homepage": "https://github.com/fdussert/fremkit-sietch",
+  "description": { "fr": "Tokens économisés par RTK aujourd’hui et au total", "en": "Tokens RTK saved today and overall" },
+  "category": "ai",
+  "icon": "gauge", "minSize": [8, 3], "defaultSize": [12, 4], "compact": { "width": 6 },
+  "subscriptions": ["rtk"],
+  "settingsSchema": {
+    "days": { "type": "enum", "label": { "fr": "Historique", "en": "History" }, "default": "14",
+      "options": [
+        { "value": "7", "label": { "fr": "7 jours", "en": "7 days" } },
+        { "value": "14", "label": { "fr": "14 jours", "en": "14 days" } },
+        { "value": "30", "label": { "fr": "30 jours", "en": "30 days" } }
+      ] }
+  } }
