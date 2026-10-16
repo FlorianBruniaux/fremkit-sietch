@@ -4,8 +4,9 @@
     "fr": "Conteneurs Docker",
     "en": "Docker containers"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "sdk": 1,
+  "author": "FlorianBruniaux",
   "license": "MIT",
   "description": {
     "fr": "État, CPU, mémoire et entrées/sorties des conteneurs locaux, lecture seule",

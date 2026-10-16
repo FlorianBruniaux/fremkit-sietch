@@ -1,3 +1,8 @@
+## 1.0.1 — 2026-10-16
+
+### Changed
+- Credits its author, FlorianBruniaux, on its card.
+
 ## 1.0.0 — 2026-10-15
 
 ### Added
