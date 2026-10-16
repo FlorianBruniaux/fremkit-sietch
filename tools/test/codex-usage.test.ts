@@ -81,6 +81,14 @@ describe('Codex quota and usage widget', () => {
     expect(widget.text()).toContain('Example model'); expect(widget.text()).toContain('5 h')
     expect(widget.text()).toContain('2027') // epoch seconds, not milliseconds (1970)
   })
+  it('uses a readable label for an unnamed Codex bucket and leaves room for quota values', () => {
+    const data = snapshot()
+    data.quotas = part({ buckets: [{ id: 'codex', name: null, primary: { usedPercent: 42, remainingPercent: 58, windowDurationMins: 300, resetsAt: null }, secondary: null }] })
+    const widget = load('codex-usage', data)
+    expect(widget.elements.get('quotas').innerHTML).toContain('Codex')
+    expect(widget.elements.get('quotas').innerHTML).toContain('58% remaining')
+    expect(widget.elements.get('quotas').innerHTML).not.toContain('>codex<')
+  })
   it('retains stale metrics with their reason and source timestamp', () => {
     const data = snapshot(); data.usage.data.summary.lifetimeTokens = 123 as any
     data.usage = part(data.usage.data, 'stale', 'offline')
@@ -153,18 +161,29 @@ describe('Codex readable durations', () => {
 
 
 describe('Codex account identity in the quota widget',()=>{
-  it('shows the verified email and subscription, with localized labels',()=>{
-    const data:any=snapshot();data.account=part({type:'chatgpt',email:'example@example.com',planType:'pro'})
-    const widget=load('codex-usage',data,'en');expect(widget.text()).toContain('Codex account');expect(widget.text()).toContain('example@example.com · ChatGPT Pro')
+  it('shows the available account type and subscription, with localized labels',()=>{
+    const data:any=snapshot();data.account=part({type:'chatgpt',planType:'pro'})
+    const widget=load('codex-usage',data,'en');expect(widget.text()).toContain('Codex account');expect(widget.text()).toContain('ChatGPT · Pro')
+    expect(widget.text()).not.toContain('@')
     widget.language('fr');expect(widget.text()).toContain('Compte Codex')
   })
   it('marks cached identity as stale and removes it when authorization is lost',()=>{
-    const data:any=snapshot();data.account=part({type:'chatgpt',email:'example@example.com',planType:'plus'},'stale','offline')
+    const data:any=snapshot();data.account=part({type:'chatgpt',planType:'plus'},'stale','offline')
     const widget=load('codex-usage',data,'fr');expect(widget.elements.get('accountStatus').textContent).toContain('Données anciennes')
-    data.account=part(null,'unavailable','unauthorized');widget.update(data);expect(widget.text()).not.toContain('example@example.com');expect(widget.elements.get('accountIdentity').textContent).toContain('Autorisation du compte requise')
+    data.account=part(null,'unavailable','unauthorized');widget.update(data);expect(widget.elements.get('accountIdentity').textContent).toContain('Autorisation du compte requise')
   })
   it('shows unknown with an older host and names API key authentication without claiming an email',()=>{
     const widget=load('codex-usage',snapshot(),'fr');expect(widget.elements.get('accountIdentity').textContent).toBe('Inconnu')
-    const data:any=snapshot();data.account=part({type:'apiKey',email:null,planType:null});widget.update(data);expect(widget.elements.get('accountIdentity').textContent).toBe('Clé API')
+    const data:any=snapshot();data.account=part({type:'apiKey',planType:null});widget.update(data);expect(widget.elements.get('accountIdentity').textContent).toBe('Clé API')
+    expect(widget.elements.get('quotaStatus').textContent).toContain('Quotas disponibles uniquement')
+  })
+  it('gives one privacy opt-in instruction and hides unsupported metrics',()=>{
+    const data:any=snapshot();data.account=part(null,'unavailable','unconfigured')
+    const widget=load('codex-usage',data,'fr')
+    expect(widget.elements.get('accountIdentity').textContent).toContain('Confidentialité')
+    expect(widget.elements.get('quotaStatus').textContent).toBe('')
+    expect(widget.elements.get('usageStatus').textContent).toBe('')
+    expect(widget.elements.get('quotas').innerHTML).toBe('')
+    expect(widget.elements.get('summary').innerHTML).toBe('')
   })
 })

@@ -1,9 +1,9 @@
 # Codex usage
 
-Requires Fremkit SDK 1 and the opt-in `codex` core provider. Codex must be installed and its account must be configured outside this widget. This package contains original MIT-licensed code and no external assets or credential access.
+Requires Fremkit 0.3.0 and SDK 1. Enable **Read Codex account quotas and usage** in Screen settings, Privacy. Codex must be installed and signed in on the Mac. The widget has no network permission or credential access.
 
-Reads quota buckets and five supplied account summary fields. Missing data remains unknown; zero remains zero. Shows at most six quota buckets with a disclosure. Reset timestamps are protocol epoch seconds; source freshness timestamps are milliseconds. Daily buckets are not rendered in this minimal release. Quotas and usage retain independent status messages and stale values. No commands or network permissions.
+The account section shows only the type and plan provided by Fremkit. The core does not provide an email. Quotas are available with ChatGPT sign-in; API key and Amazon Bedrock modes display an explanation instead. The widget reads up to six quota buckets and five account usage fields. Missing values remain unknown, while zero remains zero. Stale values retain their status and timestamp. Reset timestamps are epoch seconds; provider update timestamps are milliseconds. Daily usage buckets are not rendered.
 
-Both layouts use host theme tokens, transparent backgrounds and navigation slot alignment. Compact mode is a read-only summary; its full-tile popover is controlled by the host. Loading, unconfigured, unauthorized, unsupported, invalid and offline states are translated into French and English.
+Both layouts use host theme colors and text scaling. Compact mode shows available quota windows. The widget sends no commands.
 
-Run from the registry root: `pnpm exec vitest run tools/test/codex-widgets.test.ts`. Tests run the delivered widget script with synthetic provider snapshots. Real account comparison, native touch opening and desktop live activity are unverified.
+Run from the registry root: `pnpm exec vitest run tools/test/codex-usage.test.ts`. Tests use synthetic provider snapshots. Real account data and physical touch are not verified by those tests.
