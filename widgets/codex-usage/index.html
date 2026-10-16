@@ -1,220 +1,645 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Codex usage</title><style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; color: var(--on-surface, var(--text, #e6e8eb)); font-family: var(--font, system-ui, sans-serif); }
-    * { box-sizing: border-box; }
-    .wrap { height: 100%; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .full.list { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; display: flex; flex-direction: column; gap: 8px; }
-    .section { margin: 0; font-size: calc(12px * var(--text-scale, 1)); font-weight: 650; }
-    .account-identity { margin-top: 2px; font-size: calc(14px * var(--text-scale, 1)); font-weight: 650; overflow-wrap: anywhere; }
-    .note, .status, .meta { font-size: calc(12px * var(--text-scale, 1)); line-height: 1.35; }
-    .note, .meta { color: var(--text-muted, currentColor); }
-    .status:empty, .note:empty { display: none; }
-    .status { padding-left: 8px; border-left: 2px solid var(--accent, currentColor); }
-    .bucket, .metric { padding: 10px; border-radius: 10px; background: rgba(128, 128, 128, .1); }
-    .windows { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .window { flex: 1; min-width: 140px; }
-    .value { margin: 4px 0; font-size: calc(20px * var(--text-scale, 1)); line-height: 1.25; font-weight: 650; }
-    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
-    .metric { min-height: 76px; }
-    .metric .value { font-size: calc(18px * var(--text-scale, 1)); }
-    .cwrap { display: none; width: 100%; height: 100%; align-items: center; gap: 10px; }
-    .compact-gauges { display: flex; flex: 1; min-width: 0; gap: 12px; }
-    .cg { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-    .cline { display: flex; justify-content: space-between; gap: 6px; font-size: calc(clamp(12px, var(--h, 80px) * .26, 24px) * var(--text-scale, 1)); font-weight: 650; white-space: nowrap; }
-    .cline .n { color: var(--text-muted, currentColor); overflow: hidden; text-overflow: ellipsis; }
-    .cbar { height: max(2px, calc(var(--h, 80px) * .045)); border-radius: 999px; background: var(--surface-3, #252a32); overflow: hidden; }
-    .cbar > i { display: block; height: 100%; transition: width .4s; }
-    .cbar.ok > i { background: var(--ok, #2fb36b); }
-    .cbar.warn > i { background: var(--warn, #f0a020); }
-    .cbar.hot > i { background: var(--danger, #d9463f); }
-    .cstatus { font-size: calc(12px * var(--text-scale, 1)); color: var(--text-muted, currentColor); }
-    html.compact .wrap { padding: 0 10px; justify-content: center; }
-    html.compact .full { display: none; }
-    html.compact .cwrap { display: flex; }
-    html.compact.slot-right .cwrap { justify-content: flex-end; text-align: right; }
-</style></head><body><div class="wrap"><div class="full account"><div class="section" id="accountHeading"></div><div class="account-identity" id="accountIdentity"></div><div class="note" id="accountStatus" role="status"></div></div><div class="full list"><h2 class="section" id="quotaHeading"></h2><div class="status" id="quotaStatus" role="status"></div><div id="quotas"></div><div class="note" id="quotaEmpty"></div><div class="note" id="more"></div><h2 class="section" id="usageHeading"></h2><div class="status" id="usageStatus" role="status"></div><div class="summary" id="summary"></div><div class="note" id="usageEmpty"></div></div><div class="cwrap"><div class="compact-gauges" id="compact" role="status"></div></div></div><script>
-var L = {
-    "loading": {
-        "fr": "Chargement…",
-        "en": "Loading…"
-    },
-    "unconfigured": {
-        "fr": "Non configuré",
-        "en": "Not configured"
-    },
-    "unauthorized": {
-        "fr": "Autorisation du compte requise",
-        "en": "Account authorization required"
-    },
-    "unsupported": {
-        "fr": "Méthode non prise en charge",
-        "en": "Method unsupported"
-    },
-    "offline": {
-        "fr": "Hors ligne",
-        "en": "Offline"
-    },
-    "invalid": {
-        "fr": "Données fournisseur invalides",
-        "en": "Invalid provider data"
-    },
-    "unknown": {
-        "fr": "Inconnu",
-        "en": "Unknown"
-    },
-    "stale": {
-        "fr": "Données anciennes",
-        "en": "Stale"
-    },
-    "updated": {
-        "fr": "Mis à jour",
-        "en": "Updated"
-    },
-    "quotas": {
-        "fr": "Quotas",
-        "en": "Quotas"
-    },
-    "usage": {
-        "fr": "Usage du compte",
-        "en": "Account usage"
-    },
-    "noQuota": {
-        "fr": "Quota inconnu",
-        "en": "Quota unknown"
-    },
-    "remaining": {
-        "fr": "{n}% restant",
-        "en": "{n}% remaining"
-    },
-    "used": {
-        "fr": "{n}% utilisé",
-        "en": "{n}% used"
-    },
-    "primary": {
-        "fr": "Fenêtre principale",
-        "en": "Primary window"
-    },
-    "secondary": {
-        "fr": "Fenêtre secondaire",
-        "en": "Secondary window"
-    },
-    "reset": {
-        "fr": "Réinitialisation",
-        "en": "Reset"
-    },
-    "window": {
-        "fr": "Durée",
-        "en": "Duration"
-    },
-    "lifetimeTokens": {
-        "fr": "Tokens cumulés",
-        "en": "Lifetime tokens"
-    },
-    "peakDailyTokens": {
-        "fr": "Pic quotidien",
-        "en": "Peak daily tokens"
-    },
-    "currentStreakDays": {
-        "fr": "Série actuelle",
-        "en": "Current streak"
-    },
-    "longestStreakDays": {
-        "fr": "Plus longue série",
-        "en": "Longest streak"
-    },
-    "longestRunningTurnSec": {
-        "fr": "Tour le plus long",
-        "en": "Longest turn"
-    },
-    "tokens": {
-        "fr": "{n} tokens",
-        "en": "{n} tokens"
-    },
-    "days": {
-        "fr": "{n} jours",
-        "en": "{n} days"
-    },
-    "quotaCount": {
-        "fr": "Affichage de {n} sur {total} quotas",
-        "en": "Showing {n} of {total} quota buckets"
-    }
-};
-L.tokensScaled = { fr: '{n} de tokens', en: '{n} tokens' };
-L.accountHeading = { fr: 'Compte Codex', en: 'Codex account' };
-L.enableAccount = { fr: 'Activer « Lire les quotas et l’usage Codex » dans Écran → Confidentialité (Fremkit 0.3.0)', en: 'Enable “Read Codex account quotas and usage” in Screen settings → Privacy (Fremkit 0.3.0)' };
-L.chatgpt = { fr: 'ChatGPT', en: 'ChatGPT' };
-L.review = { fr: 'Revue', en: 'Review' };
-L.signIn = { fr: 'Quotas disponibles uniquement avec une connexion ChatGPT', en: 'Quotas are only available with ChatGPT sign-in' };
-L['apiKey'] = { fr: 'Clé API', en: 'API key' };
-var snapshot = null;
-function t(key, params) { return Fremkit.t(L[key] || L.unknown, params); }
-function esc(value) { return Fremkit.esc(value); }
-function date(value, seconds) { return value == null ? t('unknown') : new Date(value * (seconds ? 1000 : 1)).toLocaleString(Fremkit.locale === 'fr' ? 'fr-FR' : 'en-GB'); }
-function status(part) { if (!part)
-    return t('loading'); var text = []; if (part.freshness === 'stale')
-    text.push(t('stale')); if (part.error)
-    text.push(t(part.error)); if (part.updatedAt != null)
-    text.push(t('updated') + ': ' + date(part.updatedAt, false)); return text.join(' · '); }
-function set(id, text) { document.getElementById(id).textContent = text; }
-function bucketName(bucket) { return bucket.name || (bucket.id === 'codex' ? 'Codex' : bucket.id === 'review' ? t('review') : bucket.id); }
-function resize() { document.documentElement.style.setProperty('--h', Fremkit.size.px.height + 'px'); render(); }
-function tokens(value) {
-    var large = value >= 1000000, french = Fremkit.locale === 'fr';
-    var amount = new Intl.NumberFormat(french ? 'fr-FR' : 'en-GB', { notation: 'compact', compactDisplay: large ? 'long' : 'short', maximumFractionDigits: 1 }).format(value);
-    return t(french && large ? 'tokensScaled' : 'tokens', { n: amount });
-}
-function duration(value, inMinutes) {
-    if (value == null)
-        return t('unknown');
-    if (!inMinutes && value < 60)
-        return Math.floor(value).toLocaleString(Fremkit.locale) + ' s';
-    var minutes = Math.floor(inMinutes ? value : value / 60), pieces = [];
-    if (inMinutes && minutes >= 1440) {
-        var days = Math.floor(minutes / 1440);
-        pieces.push(days.toLocaleString(Fremkit.locale) + ' ' + (Fremkit.locale === 'fr' ? (days === 1 ? 'jour' : 'jours') : (days === 1 ? 'day' : 'days')));
-        minutes %= 1440;
-    }
-    if (minutes >= 60) {
-        pieces.push(Math.floor(minutes / 60).toLocaleString(Fremkit.locale) + ' h');
-        minutes %= 60;
-    }
-    if (minutes || !pieces.length)
-        pieces.push(minutes + ' min');
-    return pieces.join(' ');
-}
-function windowHtml(value, key) { if (!value)
-    return '<div class="window"><div class="meta">' + esc(t(key)) + '</div>' + esc(t('unknown')) + '</div>'; return '<div class="window"><div class="meta">' + esc(t(key)) + '</div><div class="value">' + esc(t('remaining', { n: value.remainingPercent })) + '</div><div class="meta">' + esc(t('used', { n: value.usedPercent })) + ' · ' + esc(t('window')) + ': ' + esc(duration(value.windowDurationMins, true)) + '<br>' + esc(t('reset')) + ': ' + esc(date(value.resetsAt, true)) + '</div></div>'; }
-function compactQuotaHtml(quotas, buckets) {
-    var bucket = buckets.find(function (b) { return b.id === 'codex'; }) || buckets[0];
-    var windows = bucket ? [{ value: bucket.primary, key: 'primary' }, { value: bucket.secondary, key: 'secondary' }].filter(function (w) { return w.value; }) : [];
-    if (!quotas || quotas.freshness !== 'fresh' || quotas.error || !windows.length) {
-        var reason = !quotas ? t('loading') : quotas.freshness !== 'fresh' || quotas.error ? status(quotas) : t('noQuota');
-        return '<span class="cstatus" title="' + esc(reason) + '" aria-label="' + esc(reason) + '">' + (!quotas ? '…' : '?') + '</span>';
-    }
-    return windows.map(function (w) { var v = w.value, p = Math.max(0, Math.min(100, v.usedPercent)), name = v.windowDurationMins == null ? t(w.key) : duration(v.windowDurationMins, true), label = bucketName(bucket) + ' · ' + name + ' · ' + t('used', { n: v.usedPercent }), details = label + ' · ' + t('remaining', { n: v.remainingPercent }) + ' · ' + t('reset') + ': ' + date(v.resetsAt, true); return '<div class="cg" role="meter" aria-label="' + esc(label) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '" title="' + esc(details) + '"><div class="cline"><span class="n">' + esc(name) + '</span><span>' + esc(v.usedPercent) + '%</span></div><div class="cbar ' + (p < 60 ? 'ok' : p < 85 ? 'warn' : 'hot') + '"><i style="width:' + p + '%"></i></div></div>'; }).join('');
-}
-function render() {
-    document.documentElement.lang = Fremkit.locale;
-    var account = snapshot && snapshot.account, identity = account && account.data;
-    set('accountHeading', t('accountHeading'));
-    var accountText = !snapshot ? t('loading') : !identity ? account && account.error === 'unconfigured' ? t('enableAccount') : t(account && account.error || 'unknown') : identity.type === 'apiKey' ? t('apiKey') : identity.type === 'amazonBedrock' ? 'Amazon Bedrock' : t('chatgpt') + (identity.planType ? ' · ' + identity.planType.charAt(0).toUpperCase() + identity.planType.slice(1) : '');
-    set('accountIdentity', accountText);
-    var quotas = snapshot && snapshot.quotas, usage = snapshot && snapshot.usage, buckets = quotas && quotas.data && quotas.data.buckets || [];
-    var needsOptIn = account && account.error === 'unconfigured', unsupportedAuth = identity && (identity.type === 'apiKey' || identity.type === 'amazonBedrock');
-    if (needsOptIn || unsupportedAuth)
-        buckets = [];
-    set('quotaHeading', t('quotas'));
-    set('usageHeading', t('usage'));
-    set('accountStatus', needsOptIn ? '' : account ? status(account) : '');
-    set('quotaStatus', needsOptIn ? '' : unsupportedAuth ? t('signIn') : status(quotas));
-    set('usageStatus', needsOptIn || unsupportedAuth ? '' : status(usage));
-    document.getElementById('quotas').innerHTML = buckets.slice(0, 6).map(function (bucket) { return '<section class="bucket"><div class="section">' + esc(bucketName(bucket)) + '</div><div class="windows">' + windowHtml(bucket.primary, 'primary') + windowHtml(bucket.secondary, 'secondary') + '</div></section>'; }).join('');
-    set('quotaEmpty', needsOptIn || unsupportedAuth ? '' : !quotas ? t('loading') : !quotas.data ? t(quotas.error) : buckets.length ? '' : t('noQuota'));
-    set('more', buckets.length > 6 ? t('quotaCount', { n: 6, total: buckets.length }) : '');
-    var summary = !needsOptIn && !unsupportedAuth && usage && usage.data && usage.data.summary;
-    document.getElementById('summary').innerHTML = summary ? ['lifetimeTokens', 'peakDailyTokens', 'currentStreakDays', 'longestStreakDays', 'longestRunningTurnSec'].map(function (key) { var value = summary[key]; return '<div class="metric"><div class="meta">' + esc(t(key)) + '</div><div class="value">' + esc(value == null ? t('unknown') : key.indexOf('Tokens') !== -1 ? tokens(value) : key === 'longestRunningTurnSec' ? duration(value, false) : t('days', { n: value.toLocaleString(Fremkit.locale) })) + '</div></div>'; }).join('') : '';
-    set('usageEmpty', needsOptIn || unsupportedAuth ? '' : !usage ? t('loading') : !summary ? t(usage.error) : '');
-    document.getElementById('compact').innerHTML = needsOptIn ? '<span class="cstatus">' + esc(t('enableAccount')) + '</span>' : unsupportedAuth ? '<span class="cstatus">' + esc(t('signIn')) + '</span>' : compactQuotaHtml(quotas, buckets);
-}
-Fremkit.whenReady(function () { Fremkit.subscribe('codex', function (data) { snapshot = data; render(); }); Fremkit.onLocale(render); Fremkit.onResize(resize); resize(); });
-</script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Codex usage</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        color: var(--on-surface, var(--text, #e6e8eb));
+        font-family: var(--font, system-ui, sans-serif);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      .wrap {
+        height: 100%;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .full.list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        touch-action: pan-y;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .section {
+        margin: 0;
+        font-size: calc(12px * var(--text-scale, 1));
+        font-weight: 650;
+      }
+      .account-identity {
+        margin-top: 2px;
+        font-size: calc(14px * var(--text-scale, 1));
+        font-weight: 650;
+        overflow-wrap: anywhere;
+      }
+      .note,
+      .status,
+      .meta {
+        font-size: calc(12px * var(--text-scale, 1));
+        line-height: 1.35;
+      }
+      .note,
+      .meta {
+        color: var(--text-muted, currentColor);
+      }
+      .status:empty,
+      .note:empty {
+        display: none;
+      }
+      .status {
+        padding-left: 8px;
+        border-left: 2px solid var(--accent, currentColor);
+      }
+      .bucket,
+      .metric {
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(128, 128, 128, 0.1);
+      }
+      .windows {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .window {
+        flex: 1;
+        min-width: 140px;
+      }
+      .value {
+        margin: 4px 0;
+        font-size: calc(20px * var(--text-scale, 1));
+        line-height: 1.25;
+        font-weight: 650;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+        gap: 8px;
+      }
+      .metric {
+        min-height: 76px;
+      }
+      .metric .value {
+        font-size: calc(18px * var(--text-scale, 1));
+      }
+      .cwrap {
+        display: none;
+        width: 100%;
+        height: 100%;
+        align-items: center;
+        gap: 10px;
+      }
+      .compact-gauges {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        gap: 12px;
+      }
+      .cg {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .cline {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: calc(
+          clamp(12px, var(--h, 80px) * 0.26, 24px) * var(--text-scale, 1)
+        );
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .cline .n {
+        color: var(--text-muted, currentColor);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cbar {
+        height: max(2px, calc(var(--h, 80px) * 0.045));
+        border-radius: 999px;
+        background: var(--surface-3, #252a32);
+        overflow: hidden;
+      }
+      .cbar > i {
+        display: block;
+        height: 100%;
+        transition: width 0.4s;
+      }
+      .cbar.ok > i {
+        background: var(--ok, #2fb36b);
+      }
+      .cbar.warn > i {
+        background: var(--warn, #f0a020);
+      }
+      .cbar.hot > i {
+        background: var(--danger, #d9463f);
+      }
+      .cstatus {
+        font-size: calc(12px * var(--text-scale, 1));
+        color: var(--text-muted, currentColor);
+      }
+      html.compact .wrap {
+        padding: 0 10px;
+        justify-content: center;
+      }
+      html.compact .full {
+        display: none;
+      }
+      html.compact .cwrap {
+        display: flex;
+      }
+      html.compact.slot-right .cwrap {
+        justify-content: flex-end;
+        text-align: right;
+      }
+      html.accent-fill .status {
+        border-left-color: var(--on-surface, currentColor);
+      }
+      html.accent-fill .note,
+      html.accent-fill .meta,
+      html.accent-fill .cline .n,
+      html.accent-fill .cstatus {
+        color: var(--on-surface, currentColor);
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="full account">
+        <div class="section" id="accountHeading"></div>
+        <div class="account-identity" id="accountIdentity"></div>
+        <div class="note" id="accountStatus" role="status"></div>
+      </div>
+      <div class="full list">
+        <h2 class="section" id="quotaHeading"></h2>
+        <div class="status" id="quotaStatus" role="status"></div>
+        <div id="quotas"></div>
+        <div class="note" id="quotaEmpty"></div>
+        <div class="note" id="more"></div>
+        <h2 class="section" id="usageHeading"></h2>
+        <div class="status" id="usageStatus" role="status"></div>
+        <div class="summary" id="summary"></div>
+        <div class="note" id="usageEmpty"></div>
+      </div>
+      <div class="cwrap">
+        <div class="compact-gauges" id="compact" role="status"></div>
+      </div>
+    </div>
+    <script>
+      var L = {
+        loading: {
+          fr: "Chargement…",
+          en: "Loading…",
+        },
+        unconfigured: {
+          fr: "Non configuré",
+          en: "Not configured",
+        },
+        unauthorized: {
+          fr: "Autorisation du compte requise",
+          en: "Account authorization required",
+        },
+        unsupported: {
+          fr: "Méthode non prise en charge",
+          en: "Method unsupported",
+        },
+        offline: {
+          fr: "Hors ligne",
+          en: "Offline",
+        },
+        invalid: {
+          fr: "Données fournisseur invalides",
+          en: "Invalid provider data",
+        },
+        unknown: {
+          fr: "Inconnu",
+          en: "Unknown",
+        },
+        stale: {
+          fr: "Données anciennes",
+          en: "Stale",
+        },
+        updated: {
+          fr: "Mis à jour",
+          en: "Updated",
+        },
+        quotas: {
+          fr: "Quotas",
+          en: "Quotas",
+        },
+        usage: {
+          fr: "Usage du compte",
+          en: "Account usage",
+        },
+        noQuota: {
+          fr: "Quota inconnu",
+          en: "Quota unknown",
+        },
+        remaining: {
+          fr: "{n}% restant",
+          en: "{n}% remaining",
+        },
+        used: {
+          fr: "{n}% utilisé",
+          en: "{n}% used",
+        },
+        primary: {
+          fr: "Fenêtre principale",
+          en: "Primary window",
+        },
+        secondary: {
+          fr: "Fenêtre secondaire",
+          en: "Secondary window",
+        },
+        reset: {
+          fr: "Réinitialisation",
+          en: "Reset",
+        },
+        window: {
+          fr: "Durée",
+          en: "Duration",
+        },
+        lifetimeTokens: {
+          fr: "Tokens cumulés",
+          en: "Lifetime tokens",
+        },
+        peakDailyTokens: {
+          fr: "Pic quotidien",
+          en: "Peak daily tokens",
+        },
+        currentStreakDays: {
+          fr: "Série actuelle",
+          en: "Current streak",
+        },
+        longestStreakDays: {
+          fr: "Plus longue série",
+          en: "Longest streak",
+        },
+        longestRunningTurnSec: {
+          fr: "Tour le plus long",
+          en: "Longest turn",
+        },
+        tokens: {
+          fr: "{n} tokens",
+          en: "{n} tokens",
+        },
+        days: {
+          fr: "{n} jours",
+          en: "{n} days",
+        },
+        quotaCount: {
+          fr: "Affichage de {n} sur {total} quotas",
+          en: "Showing {n} of {total} quota buckets",
+        },
+      };
+      L.tokensScaled = { fr: "{n} de tokens", en: "{n} tokens" };
+      L.accountHeading = { fr: "Compte Codex", en: "Codex account" };
+      L.enableAccount = {
+        fr: "Activer « Lire les quotas et l’usage du compte Codex » dans Réglages de l’écran → Confidentialité (Fremkit 0.3.0)",
+        en: "Enable “Read Codex account quotas and usage” in Screen settings → Privacy (Fremkit 0.3.0)",
+      };
+      L.chatgpt = { fr: "ChatGPT", en: "ChatGPT" };
+      L.review = { fr: "Revue", en: "Review" };
+      L.signIn = {
+        fr: "Quotas disponibles uniquement avec une connexion ChatGPT",
+        en: "Quotas are only available with ChatGPT sign-in",
+      };
+      L["apiKey"] = { fr: "Clé API", en: "API key" };
+      var snapshot = null;
+      function t(key, params) {
+        return Fremkit.t(L[key] || L.unknown, params);
+      }
+      function esc(value) {
+        return Fremkit.esc(value);
+      }
+      function date(value, seconds) {
+        return value == null
+          ? t("unknown")
+          : new Date(value * (seconds ? 1000 : 1)).toLocaleString(
+              Fremkit.locale === "fr" ? "fr-FR" : "en-GB",
+            );
+      }
+      function status(part) {
+        if (!part) return t("loading");
+        var text = [];
+        if (part.freshness === "stale") text.push(t("stale"));
+        if (part.error) text.push(t(part.error));
+        if (part.freshness === "stale" && part.updatedAt != null) {
+          text.push(t("updated") + ": " + date(part.updatedAt, false));
+        }
+        return text.join(" · ");
+      }
+      function set(id, text) {
+        document.getElementById(id).textContent = text;
+      }
+      function bucketName(bucket) {
+        return (
+          bucket.name ||
+          (bucket.id === "codex"
+            ? "Codex"
+            : bucket.id === "review"
+              ? t("review")
+              : bucket.id)
+        );
+      }
+      function resize() {
+        document.documentElement.style.setProperty(
+          "--h",
+          Fremkit.size.px.height + "px",
+        );
+        render();
+      }
+      function tokens(value) {
+        var large = value >= 1000000,
+          french = Fremkit.locale === "fr";
+        var amount = new Intl.NumberFormat(french ? "fr-FR" : "en-GB", {
+          notation: "compact",
+          compactDisplay: large ? "long" : "short",
+          maximumFractionDigits: 1,
+        }).format(value);
+        return t(french && large ? "tokensScaled" : "tokens", { n: amount });
+      }
+      function duration(value, inMinutes) {
+        if (value == null) return t("unknown");
+        if (!inMinutes && value < 60)
+          return Math.floor(value).toLocaleString(Fremkit.locale) + " s";
+        var minutes = Math.floor(inMinutes ? value : value / 60),
+          pieces = [];
+        if (inMinutes && minutes >= 1440) {
+          var days = Math.floor(minutes / 1440);
+          pieces.push(
+            days.toLocaleString(Fremkit.locale) +
+              " " +
+              (Fremkit.locale === "fr"
+                ? days === 1
+                  ? "jour"
+                  : "jours"
+                : days === 1
+                  ? "day"
+                  : "days"),
+          );
+          minutes %= 1440;
+        }
+        if (minutes >= 60) {
+          pieces.push(
+            Math.floor(minutes / 60).toLocaleString(Fremkit.locale) + " h",
+          );
+          minutes %= 60;
+        }
+        if (minutes || !pieces.length) pieces.push(minutes + " min");
+        return pieces.join(" ");
+      }
+      function windowHtml(value, key) {
+        if (!value)
+          return (
+            '<div class="window"><div class="meta">' +
+            esc(t(key)) +
+            "</div>" +
+            esc(t("unknown")) +
+            "</div>"
+          );
+        return (
+          '<div class="window"><div class="meta">' +
+          esc(t(key)) +
+          '</div><div class="value">' +
+          esc(t("remaining", { n: value.remainingPercent })) +
+          '</div><div class="meta">' +
+          esc(t("used", { n: value.usedPercent })) +
+          " · " +
+          esc(t("window")) +
+          ": " +
+          esc(duration(value.windowDurationMins, true)) +
+          "<br>" +
+          esc(t("reset")) +
+          ": " +
+          esc(date(value.resetsAt, true)) +
+          "</div></div>"
+        );
+      }
+      function compactQuotaHtml(quotas, buckets) {
+        var bucket =
+          buckets.find(function (b) {
+            return b.id === "codex";
+          }) || buckets[0];
+        var windows = bucket
+          ? [
+              { value: bucket.primary, key: "primary" },
+              { value: bucket.secondary, key: "secondary" },
+            ].filter(function (w) {
+              return w.value;
+            })
+          : [];
+        if (
+          !quotas ||
+          quotas.freshness !== "fresh" ||
+          quotas.error ||
+          !windows.length
+        ) {
+          var reason = !quotas
+            ? t("loading")
+            : quotas.freshness !== "fresh" || quotas.error
+              ? status(quotas)
+              : t("noQuota");
+          return (
+            '<span class="cstatus" title="' +
+            esc(reason) +
+            '" aria-label="' +
+            esc(reason) +
+            '">' +
+            (!quotas ? "…" : "?") +
+            "</span>"
+          );
+        }
+        return windows
+          .map(function (w) {
+            var v = w.value,
+              p = Math.max(0, Math.min(100, v.usedPercent)),
+              name =
+                v.windowDurationMins == null
+                  ? t(w.key)
+                  : duration(v.windowDurationMins, true),
+              label =
+                bucketName(bucket) +
+                " · " +
+                name +
+                " · " +
+                t("used", { n: v.usedPercent }),
+              details =
+                label +
+                " · " +
+                t("remaining", { n: v.remainingPercent }) +
+                " · " +
+                t("reset") +
+                ": " +
+                date(v.resetsAt, true);
+            return (
+              '<div class="cg" role="meter" aria-label="' +
+              esc(label) +
+              '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+              p +
+              '" title="' +
+              esc(details) +
+              '"><div class="cline"><span class="n">' +
+              esc(name) +
+              "</span><span>" +
+              esc(v.usedPercent) +
+              '%</span></div><div class="cbar ' +
+              (p < 60 ? "ok" : p < 85 ? "warn" : "hot") +
+              '"><i style="width:' +
+              p +
+              '%"></i></div></div>'
+            );
+          })
+          .join("");
+      }
+      function render() {
+        document.documentElement.lang = Fremkit.locale;
+        var account = snapshot && snapshot.account,
+          identity = account && account.data;
+        set("accountHeading", t("accountHeading"));
+        var accountText = !snapshot
+          ? t("loading")
+          : !identity
+            ? account && account.error === "unconfigured"
+              ? t("enableAccount")
+              : t((account && account.error) || "unknown")
+            : identity.type === "apiKey"
+              ? t("apiKey")
+              : identity.type === "amazonBedrock"
+                ? "Amazon Bedrock"
+                : t("chatgpt") +
+                  (identity.planType
+                    ? " · " +
+                      identity.planType.charAt(0).toUpperCase() +
+                      identity.planType.slice(1)
+                    : "");
+        set("accountIdentity", accountText);
+        var quotas = snapshot && snapshot.quotas,
+          usage = snapshot && snapshot.usage,
+          buckets = (quotas && quotas.data && quotas.data.buckets) || [];
+        var needsOptIn = account && account.error === "unconfigured",
+          unsupportedAuth =
+            identity &&
+            (identity.type === "apiKey" || identity.type === "amazonBedrock");
+        if (needsOptIn || unsupportedAuth) buckets = [];
+        set("quotaHeading", t("quotas"));
+        set("usageHeading", t("usage"));
+        set(
+          "accountStatus",
+          needsOptIn || (account && account.error && !identity)
+            ? ""
+            : account
+              ? status(account)
+              : "",
+        );
+        set(
+          "quotaStatus",
+          needsOptIn ? "" : unsupportedAuth ? t("signIn") : status(quotas),
+        );
+        set("usageStatus", needsOptIn || unsupportedAuth ? "" : status(usage));
+        document.getElementById("quotas").innerHTML = buckets
+          .slice(0, 6)
+          .map(function (bucket) {
+            return (
+              '<section class="bucket"><div class="section">' +
+              esc(bucketName(bucket)) +
+              '</div><div class="windows">' +
+              windowHtml(bucket.primary, "primary") +
+              windowHtml(bucket.secondary, "secondary") +
+              "</div></section>"
+            );
+          })
+          .join("");
+        set(
+          "quotaEmpty",
+          needsOptIn || unsupportedAuth || !quotas || quotas.error
+            ? ""
+            : buckets.length
+              ? ""
+              : t("noQuota"),
+        );
+        set(
+          "more",
+          buckets.length > 6
+            ? t("quotaCount", { n: 6, total: buckets.length })
+            : "",
+        );
+        var summary =
+          !needsOptIn &&
+          !unsupportedAuth &&
+          usage &&
+          usage.data &&
+          usage.data.summary;
+        document.getElementById("summary").innerHTML = summary
+          ? [
+              "lifetimeTokens",
+              "peakDailyTokens",
+              "currentStreakDays",
+              "longestStreakDays",
+              "longestRunningTurnSec",
+            ]
+              .map(function (key) {
+                var value = summary[key];
+                return (
+                  '<div class="metric"><div class="meta">' +
+                  esc(t(key)) +
+                  '</div><div class="value">' +
+                  esc(
+                    value == null
+                      ? t("unknown")
+                      : key.indexOf("Tokens") !== -1
+                        ? tokens(value)
+                        : key === "longestRunningTurnSec"
+                          ? duration(value, false)
+                          : t("days", {
+                              n: value.toLocaleString(Fremkit.locale),
+                            }),
+                  ) +
+                  "</div></div>"
+                );
+              })
+              .join("")
+          : "";
+        set(
+          "usageEmpty",
+          needsOptIn || unsupportedAuth || !usage || usage.error
+            ? ""
+            : !summary
+              ? t("unknown")
+              : "",
+        );
+        document.getElementById("compact").innerHTML = needsOptIn
+          ? '<span class="cstatus">' + esc(t("enableAccount")) + "</span>"
+          : unsupportedAuth
+            ? '<span class="cstatus">' + esc(t("signIn")) + "</span>"
+            : compactQuotaHtml(quotas, buckets);
+      }
+      Fremkit.whenReady(function () {
+        Fremkit.subscribe("codex", function (data) {
+          snapshot = data;
+          render();
+        });
+        Fremkit.onLocale(render);
+        Fremkit.onResize(resize);
+        resize();
+      });
+    </script>
+  </body>
+</html>

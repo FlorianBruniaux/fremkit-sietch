@@ -6,6 +6,7 @@
   },
   "version": "1.0.0",
   "sdk": 1,
+  "author": "FlorianBruniaux",
   "license": "MIT",
   "description": {
     "fr": "Quotas et usage du compte, valeurs inconnues explicites",

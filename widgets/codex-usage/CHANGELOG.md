@@ -1,4 +1,4 @@
-## 1.0.0 (2026-10-16)
+## 1.0.0 — 2026-10-16
 
 - Display Codex account type and plan, quota windows, and usage summaries with clear missing and stale states.
 - Format large token counts and durations for compact display.
