@@ -77,6 +77,14 @@ describe('Mac temperature display on Fremkit 0.3.0', () => {
     widget.update(sample(null, null as any))
     expect(widget.elements.get('status').textContent).toContain('Confidentialité')
     expect(widget.elements.get('status').textContent).toContain('Fremkit 0.3.0')
+    expect(widget.elements.get('status').textContent).toContain('Lire la température du CPU avec macmon')
+  })
+
+  it('keeps a valid cached reading free of an unavailable warning', () => {
+    const widget = load()
+    widget.update(sample(67.5, 'macmon', 'offline'))
+    expect(widget.elements.get('cpu').textContent).toBe('67,5')
+    expect(widget.elements.get('status').textContent).toBe('')
   })
 
   it('uses the host title and provides a compact layout without a GPU claim', () => {

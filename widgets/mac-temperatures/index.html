@@ -17,7 +17,7 @@
     html.compact .value { font-size: calc(var(--h, 80px) * .36 * var(--text-scale, 1)); }
     html.compact .source { display: none; }
     html.compact .label { white-space: nowrap; }
-    html.compact .status { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    html.compact .status { display: none; }
   </style>
 </head>
 <body>
@@ -36,7 +36,7 @@
       unconfigured: { fr: 'Installer macmon : brew install macmon', en: 'Install macmon: brew install macmon' },
       unsupported: { fr: 'Apple Silicon uniquement', en: 'Apple Silicon only' },
       unavailable: { fr: 'Mesure indisponible', en: 'Reading unavailable' },
-      optIn: { fr: 'Activer « Lire la température CPU avec macmon » dans Écran → Confidentialité (Fremkit 0.3.0)', en: 'Enable “Read CPU temperature with macmon” in Screen settings → Privacy (Fremkit 0.3.0)' }
+      optIn: { fr: 'Activer « Lire la température du CPU avec macmon » dans Réglages de l’écran → Confidentialité (Fremkit 0.3.0)', en: 'Enable “Read the CPU temperature with macmon” in Screen settings → Privacy (Fremkit 0.3.0)' }
     };
 
     var snapshot = null;
@@ -64,7 +64,7 @@
       document.getElementById('status').textContent = !snapshot ? label('loading')
         : error === 'unconfigured' ? label('unconfigured')
         : error === 'unsupported' ? label('unsupported')
-        : error === 'offline' || error === 'invalid' ? label('unavailable')
+        : (error === 'offline' || error === 'invalid') && !valid(value) ? label('unavailable')
         : !valid(value) ? label('optIn') : '';
     }
 

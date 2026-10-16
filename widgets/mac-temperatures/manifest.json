@@ -6,6 +6,7 @@
   },
   "version": "1.0.0",
   "sdk": 1,
+  "author": "FlorianBruniaux",
   "license": "MIT",
   "description": {
     "fr": "Température CPU mesurée par macmon ou par le système",
