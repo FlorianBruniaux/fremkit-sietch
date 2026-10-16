@@ -1,0 +1,25 @@
+tools/test/mac-temperatures.test.ts
+  s_e827e256e15185::t_baf0963ffa5f5e 80-87
+widgets/mac-temperatures/index.html
+  s_e827e256e15185::t_baf0963ffa5f5e 20,39,67
+widgets/mac-temperatures/manifest.json
+  s_e827e256e15185::t_baf0963ffa5f5e 9
+widgets/mac-temperatures/CHANGELOG.md
+  s_e827e256e15185::t_3a114e28a30963 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aab4e425efb53e8f39e3d1208e9d32b48fbe6eb2",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
