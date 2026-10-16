@@ -9,4 +9,5 @@ entry of the version being published is what the Fremkit admin shows before an u
 ### Added
 - First release on the registry. The tokens [RTK](https://github.com/rtk-ai/rtk) saved today and
   its savings rate, the overall total, and one bar per day over the last 7, 14 or 30 days. Needs a
-  Fremkit with the `rtk` channel (after 0.3.0) and RTK installed on the Mac.
+  Fremkit with the `rtk` channel (after 0.3.0) and RTK on the Mac: `brew install rtk`, then set
+  it up for your coding agent as its README says.
