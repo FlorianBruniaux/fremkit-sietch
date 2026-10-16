@@ -125,7 +125,7 @@ describe('Codex history widget', () => {
 for (const id of ['codex-sessions']) {
   describe(id + ' availability and language', () => {
     it('shows loading before a snapshot', () => { expect(load(id).text()).toContain('Loading') })
-    it.each([['unconfigured', 'Not configured'], ['unauthorized', 'Account authorization required'], ['unsupported', 'Method unsupported'], ['offline', 'Offline'], ['invalid', 'Invalid provider data']])('distinguishes %s', (error, label) => {
+    it.each([['unconfigured', 'Enable Codex history sources'], ['unauthorized', 'Account authorization required'], ['unsupported', 'Method unsupported'], ['offline', 'Offline'], ['invalid', 'Invalid provider data']])('distinguishes %s', (error, label) => {
       const data = snapshot(); data.history = part(null, 'unavailable', error); data.quotas = part(null, 'unavailable', error); data.usage = part(null, 'unavailable', error)
       expect(load(id, data).text()).toContain(label)
     })
@@ -159,7 +159,7 @@ describe('Codex current action feedback', () => {
 describe('Codex observed session cards',()=>{
  const observed=(extra:any={})=>({id:first,parentId:null,state:'working',turnId:'turn-a',startedAt:now-420000,finishedAt:null,lastEventAt:now,model:'gpt-example',effort:'high',modelSource:'turn',durationMs:null,project:'example-project',branch:'main',nickname:null,role:null,agentName:null,subagents:[],agentsTruncated:false,...extra})
  const live=(sessions:any[])=>({sessions,updatedAt:now,error:null,truncated:false})
- it('shows the observed model, effort, project and elapsed turn time rather than session age',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed()]));const html=w.elements.get('list').innerHTML;expect(html).toContain('gpt-example');expect(html).toContain('thinking high');expect(html).toContain('example-project @ main');expect(html).toContain('Tour : 7 min');expect(html).toContain('En travail');expect(w.text()).not.toContain('Projet : inconnu');w.click(first);expect(w.commands).toEqual([['codex','open',{threadId:first}]])})
+ it('shows the observed model, effort, project and elapsed turn time rather than session age',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed()]));const html=w.elements.get('list').innerHTML;expect(html).toContain('gpt-example');expect(html).toContain('réflexion élevé');expect(html).toContain('example-project @ main');expect(html).toContain('Tour : 7 min');expect(html).toContain('En travail');expect(w.text()).not.toContain('Projet : inconnu');w.click(first);expect(w.commands).toEqual([['codex','open',{threadId:first}]])})
  it('opens a separate child panel without navigating the parent or sending a prompt',()=>{const w=load('codex-sessions',snapshot(),'fr');w.observations(live([observed({subagents:[observed({id:second,parentId:first,agentName:'check',nickname:'Example Agent',role:'worker',model:'gpt-child',state:'done',durationMs:120000,finishedAt:now})]})]));expect(w.elements.get('agents').hidden).toBe(true);w.agents(first);expect(w.elements.get('agents').hidden).toBe(false);expect(w.elements.get('agentList').innerHTML).toContain('gpt-child');expect(w.elements.get('agentList').innerHTML).toContain('Terminé');expect(w.elements.get('agentList').innerHTML).toContain('2 min');expect(w.commands).toEqual([]);w.agents(first);expect(w.elements.get('agents').hidden).toBe(true)})
  it('does not paint cached or old observations as current work and keeps the completed duration finite',()=>{const w=load('codex-sessions',snapshot());w.observations({...live([observed()]),updatedAt:now-16000});expect(w.elements.get('list').innerHTML).toContain('Unknown activity');expect(w.elements.get('list').innerHTML).not.toContain('>Working<');w.observations(live([observed({state:'done',durationMs:420000,finishedAt:now-100000})]));expect(w.elements.get('list').innerHTML).toContain('Turn: 7 min');expect(w.elements.get('list').innerHTML).toContain('Finished')})
  it('expires live badges and opening controls even without a provider update',()=>{const w=load('codex-sessions',snapshot());w.observations(live([observed()]));expect(w.elements.get('list').innerHTML).toContain('>Working<');const writes=w.listWrites();w.advance(16000);expect(w.liveState(first)).toBe('Unknown activity');expect(w.listWrites()).toBe(writes);w.advance(105000);expect(w.disabled(first)).toBe(true);expect(w.listWrites()).toBe(writes);w.click(first);expect(w.commands).toEqual([])})
@@ -169,27 +169,71 @@ describe('Codex observed session cards',()=>{
 })
 
 
-describe('Codex repository groups',()=>{
- const live=(sessions:any[])=>({sessions,updatedAt:now,error:null,truncated:false})
- const observed=(id:string,extra:any={})=>({id,parentId:null,state:'working',startedAt:now-60000,finishedAt:null,lastEventAt:now,model:'example-model',effort:'high',project:'Client App',projectId:'repo-a',branch:'main',subagents:[],...extra})
- it('groups using the saved project ID/name, preserving history order inside each group and exact opening',()=>{
-  const third='00000000-0000-4000-8000-000000000003',w=load('codex-sessions',snapshot([thread(first),thread(second),thread(third)]))
-  w.observations(live([observed(first),observed(second,{project:'Tools',projectId:'repo-b'}),observed(third)]))
-  const html=w.elements.get('list').innerHTML;expect(html.match(/class="repo-group"/g)).toHaveLength(2);expect(html).toContain('Client App');expect(html).toContain('2 sessions');expect(html.indexOf('data-id="'+first)).toBeLessThan(html.indexOf('data-id="'+third));expect(html.indexOf('data-id="'+third)).toBeLessThan(html.indexOf('data-id="'+second));w.click(third);expect(w.commands).toEqual([['codex','open',{threadId:third}]])
- })
- it('does not merge identically named projects or confuse unknown metadata with projectless',()=>{
-  const third='00000000-0000-4000-8000-000000000003',fourth='00000000-0000-4000-8000-000000000004',w=load('codex-sessions',snapshot([thread(first),thread(second),thread(third),thread(fourth)]),'fr')
-  w.observations(live([observed(first),observed(second,{projectId:'repo-b'}),observed(third,{projectId:null})]));const html=w.elements.get('list').innerHTML;expect(html.match(/class="repo-group"/g)).toHaveLength(4);expect(html).toContain('Sans projet');expect(html).toContain('Projet inconnu')
- })
- it('collapses a group without navigation, closes its agent panel and preserves collapse through updates',()=>{
-  const w=load('codex-sessions',snapshot());w.observations(live([observed(first,{subagents:[observed(second)]})]));w.agents(first);expect(w.elements.get('agents').hidden).toBe(false);w.group('project:repo-a');expect(w.elements.get('list').innerHTML).toContain('aria-expanded="false"');expect(w.elements.get('agents').hidden).toBe(true);w.click(first);expect(w.commands).toEqual([]);w.observations(live([observed(first)]));expect(w.elements.get('list').innerHTML).toContain('id="repo-cards-0" hidden');w.group('project:repo-a');w.click(first);expect(w.commands).toEqual([['codex','open',{threadId:first}]])
- })
- it('retains keyboard focus on the same group or session after a redraw',()=>{
-  const w=load('codex-sessions',snapshot());w.observations(live([observed(first)]))
-  w.focus('data-id',first);const writes=w.listWrites();w.advance(5000);expect(w.focused('data-id')).toBe(first);expect(w.listWrites()).toBe(writes)
-  w.focus('data-group','project:repo-a');w.group('project:repo-a');expect(w.focused('data-group')).toBe('project:repo-a')
- })
- it('keeps old host directory labels, escapes project names and refreshes renamed labels',()=>{
-  const w=load('codex-sessions',snapshot());w.observations(live([observed(first,{project:'<img src=x>',projectId:undefined})]));expect(w.elements.get('list').innerHTML).toContain('&lt;img src=x&gt;');expect(w.elements.get('list').innerHTML).not.toContain('<img src=x>');w.observations(live([observed(first,{project:'Renamed'})]));expect(w.elements.get('list').innerHTML).toContain('Renamed')
- })
+describe('Codex directory groups', () => {
+  const live = (sessions: any[]) => ({ sessions, updatedAt: now, error: null, truncated: false })
+  const observed = (id: string, extra: any = {}) => ({ id, parentId: null, state: 'working', startedAt: now - 60000, finishedAt: null, lastEventAt: now, model: 'example-model', effort: 'high', project: 'Client App', branch: 'main', subagents: [], ...extra })
+
+  it('groups by the directory basename published by Fremkit 0.3.0 and opens exact IDs', () => {
+    const third = '00000000-0000-4000-8000-000000000003'
+    const widget = load('codex-sessions', snapshot([thread(first), thread(second), thread(third)]))
+    widget.observations(live([observed(first), observed(second, { project: 'Tools' }), observed(third)]))
+    const html = widget.elements.get('list').innerHTML
+    expect(html.match(/class="repo-group"/g)).toHaveLength(2)
+    expect(html).toContain('Client App')
+    expect(html).toContain('2 sessions')
+    expect(html.indexOf('data-id="' + first)).toBeLessThan(html.indexOf('data-id="' + third))
+    expect(html.indexOf('data-id="' + third)).toBeLessThan(html.indexOf('data-id="' + second))
+    widget.click(third)
+    expect(widget.commands).toEqual([['codex', 'open', { threadId: third }]])
+  })
+
+  it('groups identical directory names together and keeps missing observations separate', () => {
+    const third = '00000000-0000-4000-8000-000000000003'
+    const widget = load('codex-sessions', snapshot([thread(first), thread(second), thread(third)]), 'fr')
+    widget.observations(live([observed(first), observed(second, { project: 'Client App' })]))
+    const html = widget.elements.get('list').innerHTML
+    expect(html.match(/class="repo-group"/g)).toHaveLength(2)
+    expect(html).toContain('Répertoire inconnu')
+    expect(html).not.toContain('Sans projet')
+  })
+
+  it('collapses a directory without navigation and retains the state across updates', () => {
+    const widget = load('codex-sessions', snapshot())
+    widget.observations(live([observed(first, { subagents: [observed(second)] })]))
+    widget.agents(first)
+    expect(widget.elements.get('agents').hidden).toBe(false)
+    widget.group('directory:Client App')
+    expect(widget.elements.get('list').innerHTML).toContain('aria-expanded="false"')
+    expect(widget.elements.get('agents').hidden).toBe(true)
+    widget.click(first)
+    expect(widget.commands).toEqual([])
+    widget.observations(live([observed(first)]))
+    expect(widget.elements.get('list').innerHTML).toContain('id="repo-cards-0" hidden')
+    widget.group('directory:Client App')
+    widget.click(first)
+    expect(widget.commands).toEqual([['codex', 'open', { threadId: first }]])
+  })
+
+  it('restores keyboard focus on a directory header after redraw', () => {
+    const widget = load('codex-sessions', snapshot())
+    widget.observations(live([observed(first)]))
+    widget.focus('data-id', first)
+    const writes = widget.listWrites()
+    widget.advance(5000)
+    expect(widget.focused('data-id')).toBe(first)
+    expect(widget.listWrites()).toBe(writes)
+    widget.focus('data-group', 'directory:Client App')
+    widget.group('directory:Client App')
+    expect(widget.focused('data-group')).toBe('directory:Client App')
+  })
+
+  it('escapes and refreshes directory labels, and translates source kinds', () => {
+    const widget = load('codex-sessions', snapshot(), 'fr')
+    widget.observations(live([observed(first, { project: '<img src=x>' })]))
+    expect(widget.elements.get('list').innerHTML).toContain('&lt;img src=x&gt;')
+    expect(widget.elements.get('list').innerHTML).not.toContain('<img src=x>')
+    expect(widget.elements.get('list').innerHTML).toContain('Application Codex')
+    widget.observations(live([observed(first, { project: 'Renamed' })]))
+    expect(widget.elements.get('list').innerHTML).toContain('Renamed')
+  })
 })

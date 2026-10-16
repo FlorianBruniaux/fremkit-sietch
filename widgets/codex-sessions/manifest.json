@@ -4,12 +4,12 @@
     "fr": "Sessions Codex",
     "en": "Codex sessions"
   },
-  "version": "1.2.0",
+  "version": "1.0.0",
   "sdk": 1,
   "license": "MIT",
   "description": {
-    "fr": "Sessions par projet, modèles, durées des tours et sous-agents observés",
-    "en": "Sessions grouped by project, models, observed turn durations and subagents"
+    "fr": "Sessions par répertoire, modèles, durées des tours et sous-agents observés",
+    "en": "Sessions grouped by directory, models, observed turn durations and subagents"
   },
   "category": "ai",
   "icon": "history",

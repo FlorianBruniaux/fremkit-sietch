@@ -1,5 +1,5 @@
-## 1.2.0
+## 1.0.0 (2026-10-16)
 
-### Added
-- Refresh elapsed time and expiring controls in place, so a timer tick cannot replace a card during a touch.
-- Show up to 50 local Codex chats in compact cards grouped by saved project. Cards include observed model, turn duration and direct subagents when available. Touch a validated card to open that exact chat in Codex. Refresh stale activity and opening controls without provider updates, preserve keyboard focus, and scale cards with the host text setting.
+- Show stored Codex sessions grouped by observed working-directory basename, with models, turn state, duration and subagent details.
+- Open fresh desktop chats by exact UUID and keep stale or unsupported records disabled.
+- Explain the Fremkit 0.3.0 history privacy opt-in and use readable source labels.
