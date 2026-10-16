@@ -1,309 +1,1046 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Codex sessions</title><style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; color: var(--on-surface, var(--text, #e6e8eb)); font-family: var(--font, system-ui, sans-serif); }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    .wrap { height: 100%; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .section { font-size: calc(13px * var(--text-scale, 1)); font-weight: 650; }
-    .note, .status, .meta { font-size: calc(12px * var(--text-scale, 1)); line-height: 1.35; }
-    .note, .meta { color: var(--text-muted, currentColor); }
-    #context { font-size: calc(11px * var(--text-scale, 1)); }
-    .status { padding-left: 8px; border-left: 2px solid var(--accent, currentColor); }
-    #error { font-weight: 650; }
-    #empty:empty, #more:empty, #status:empty { display: none; }
-    .list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
-    .repo-group { margin-bottom: 14px; }
-    .repo-head { width: 100%; min-height: calc(56px * var(--text-scale, 1)); padding: 10px 12px; display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid var(--text-muted, #485058); border-radius: 10px; background: rgba(128, 128, 128, .05); color: inherit; font: inherit; cursor: pointer; }
-    .repo-head:focus-visible, .row:focus-visible, .agent-toggle:focus-visible, .close-agents:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: -2px; }
-    .repo-folder { width: 22px; height: 22px; flex-shrink: 0; color: var(--accent, currentColor); }
-    .repo-name { font-size: calc(17px * var(--text-scale, 1)); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .repo-count { padding: 3px 8px; border-radius: 16px; background: rgba(128, 128, 128, .12); font-size: calc(12px * var(--text-scale, 1)); white-space: nowrap; }
-    .repo-caret { margin-left: auto; opacity: .7; }
-    .repo-cards { padding: 8px 2px 2px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); grid-auto-rows: calc(156px * var(--text-scale, 1)); gap: 8px; }
-    .card { position: relative; min-width: 0; height: calc(156px * var(--text-scale, 1)); }
-    .row { width: 100%; height: 100%; min-height: 56px; padding: 12px; display: flex; flex-direction: column; align-items: stretch; gap: 6px; border: 1px solid var(--text-muted, #485058); border-radius: 10px; background: rgba(128, 128, 128, .1); color: inherit; font: inherit; text-align: left; }
-    .row:not(:disabled) { cursor: pointer; }
-    .row:disabled { opacity: .8; }
-    .row:not(:disabled):hover { background: rgba(128, 128, 128, .18); }
-    .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .title { display: -webkit-box; margin: 0; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: calc(16px * var(--text-scale, 1)); line-height: 1.25; font-weight: 650; }
-    .has-agents .title { padding-right: calc(84px * var(--text-scale, 1)); }
-    .details { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: calc(12px * var(--text-scale, 1)); line-height: 1.3; }
-    .model { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ok, #2fb36b); font-weight: 650; }
-    .where, .source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .state { padding: 2px 5px; border-radius: 5px; background: rgba(128, 128, 128, .12); font-size: calc(11px * var(--text-scale, 1)); }
-    .state.working { color: var(--ok, #2fb36b); }
-    .state.waiting { color: var(--warn, #f0a020); }
-    .state.done { color: var(--accent, #7eaeeb); }
-    .state.error { color: var(--danger, #d9463f); }
-    .state.unknown { opacity: .65; }
-    .card-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .action { flex-shrink: 0; color: var(--accent, currentColor); font-size: calc(12px * var(--text-scale, 1)); }
-    html.accent-fill .action, html.accent-fill .agent-toggle { color: var(--on-accent, #101418); }
-    .agent-toggle { position: absolute; top: 8px; right: 8px; width: calc(82px * var(--text-scale, 1)); min-height: 44px; border: 1px solid var(--accent, currentColor); border-radius: 8px; background: var(--accent, #d9b36a); color: var(--on-accent, #101418); font: inherit; font-size: calc(12px * var(--text-scale, 1)); cursor: pointer; }
-    .agents-panel { position: absolute; inset: auto 12px 12px; z-index: 4; max-height: 70%; overflow: auto; padding: 16px; border: 1px solid var(--accent, currentColor); border-radius: 12px; background: var(--surface, #171c22); color: inherit; box-shadow: 0 8px 40px #0008; }
-    .agents-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; }
-    .agents-head h2 { margin: 0; font-size: calc(18px * var(--text-scale, 1)); }
-    .close-agents { min-height: 44px; min-width: 80px; border: 1px solid var(--text-muted, #485058); border-radius: 8px; background: var(--surface-2, #242b31); color: inherit; font: inherit; cursor: pointer; }
-    .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
-    .agent { padding: 12px; display: flex; flex-direction: column; gap: 6px; border-radius: 8px; background: rgba(128, 128, 128, .1); }
-    .agent strong { font-size: calc(14px * var(--text-scale, 1)); overflow-wrap: anywhere; }
-    .agent .role { font-size: calc(12px * var(--text-scale, 1)); opacity: .7; }
-    .cwrap { display: none; align-items: center; }
-    .cvalue { font-size: calc(var(--h, 80px) * .22 * var(--text-scale, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    html.compact .wrap { padding: 0 10px; justify-content: center; }
-    html.compact .full { display: none; }
-    html.compact .cwrap { display: flex; }
-    html.compact.slot-right .cwrap { justify-content: flex-end; text-align: right; }
-</style></head><body><div class="wrap"><div class="full section" id="kind"></div><div class="full note" id="context"></div><div class="full status" id="status" role="status" aria-live="polite"></div><div class="status" id="error" role="status" aria-live="polite" hidden></div><div class="full list" id="list"></div><div class="full note" id="empty"></div><div class="full note" id="more"></div><div class="cwrap"><span class="cvalue" id="compact" role="status"></span></div></div><section id="agents" class="agents-panel" role="region" hidden><div class="agents-head"><h2 id="agentsTitle"></h2><button id="closeAgents" class="close-agents"></button></div><div id="agentList" class="agent-list"></div><div id="agentsNote" class="note"></div></section><script>
-var L = {
-    "loading": {
-        "fr": "Chargement…",
-        "en": "Loading…"
-    },
-    "unconfigured": {
-        "fr": "Non configuré",
-        "en": "Not configured"
-    },
-    "unauthorized": {
-        "fr": "Autorisation du compte requise",
-        "en": "Account authorization required"
-    },
-    "unsupported": {
-        "fr": "Méthode non prise en charge",
-        "en": "Method unsupported"
-    },
-    "offline": {
-        "fr": "Hors ligne",
-        "en": "Offline"
-    },
-    "invalid": {
-        "fr": "Données fournisseur invalides",
-        "en": "Invalid provider data"
-    },
-    "unknown": {
-        "fr": "Inconnu",
-        "en": "Unknown"
-    },
-    "stale": {
-        "fr": "Données anciennes",
-        "en": "Stale"
-    },
-    "updated": {
-        "fr": "Mis à jour",
-        "en": "Updated"
-    },
-    "history": {
-        "fr": "Historique",
-        "en": "History"
-    },
-    "unknownContext": {
-        "fr": "Projet : inconnu · Activité live : inconnue",
-        "en": "Project: unknown · Live activity: unknown"
-    },
-    "empty": {
-        "fr": "Aucun historique enregistré",
-        "en": "No stored history"
-    },
-    "staleEmpty": {
-        "fr": "Historique vide en cache",
-        "en": "Cached empty history"
-    },
-    "untitled": {
-        "fr": "Sans titre",
-        "en": "Untitled"
-    },
-    "unavailable": {
-        "fr": "Ouverture indisponible",
-        "en": "Opening unavailable"
-    },
-    "open": {
-        "fr": "Ouvrir",
-        "en": "Open"
-    },
-    "openFailed": {
-        "fr": "Impossible d’ouvrir cette session enregistrée",
-        "en": "Could not open this stored session"
-    },
-    "more": {
-        "fr": "Plus d’historique disponible",
-        "en": "More history available"
-    },
-    "shown": {
-        "fr": "Affichage de {n} sur {total}",
-        "en": "Showing {n} of {total}"
-    }
-};
-L.opening = { fr: 'Ouverture sur le Mac…', en: 'Opening on the Mac…' };
-L.openOk = { fr: 'Session ouverte sur le Mac', en: 'Session opened on the Mac' };
-L.source = { fr: 'Source', en: 'Source' };
-L.sessions = { fr: 'Sessions', en: 'Sessions' };
-L.observed = { fr: 'Modèle, durée du tour et sous-agents', en: 'Model, turn duration and subagents' };
-L.working = { fr: 'En travail', en: 'Working' };
-L.waiting = { fr: 'Attend une réponse', en: 'Waiting for input' };
-L.done = { fr: 'Terminé', en: 'Finished' };
-L.interrupted = { fr: 'Interrompu', en: 'Interrupted' };
-L.error = { fr: 'Erreur', en: 'Error' };
-L.unknownActivity = { fr: 'Activité inconnue', en: 'Unknown activity' };
-L.thinking = { fr: 'réflexion {n}', en: 'thinking {n}' };
-L.agentCount = { fr: '{n} agents', en: '{n} agents' };
-L.agentOne = { fr: '1 agent', en: '1 agent' };
-L.close = { fr: 'Fermer', en: 'Close' };
-L.turn = { fr: 'Tour : {n}', en: 'Turn: {n}' };
-L.age = { fr: 'Dernière activité : {n}', en: 'Last activity: {n}' };
-L.noModel = { fr: 'Modèle ?', en: 'Model ?' };
-L.savedModel = { fr: 'Dernier modèle enregistré', en: 'Last recorded model' };
-L.turnModel = { fr: 'Modèle observé pour ce tour', en: 'Model observed for this turn' };
-L.observationFailure = { fr: 'Suivi indisponible', en: 'Tracking unavailable' };
-L.moreAgents = { fr: 'Liste des agents partielle', en: 'Partial agent list' };
-L.agentsShown = { fr: '{n} sur {total} agents', en: '{n} of {total} agents' };
-var snapshot = null, observations = null, expandedId = null;
-var MAX_SESSIONS = 50;
-var collapsedGroups = Object.create(null);
-L.unknownProject = { fr: 'Répertoire inconnu', en: 'Unknown directory' };
-L.repoSessions = { fr: '{n} sessions', en: '{n} sessions' };
-L.repoSession = { fr: '1 session', en: '1 session' };
-L.historyOptIn = { fr: 'Activer les sources d’historique Codex dans Écran → Confidentialité (Fremkit 0.3.0)', en: 'Enable Codex history sources in Screen settings → Privacy (Fremkit 0.3.0)' };
-L.sourceKinds = { cli: { fr: 'CLI', en: 'CLI' }, vscode: { fr: 'VS Code', en: 'VS Code' }, exec: { fr: 'Exécution', en: 'Exec' }, appServer: { fr: 'Application Codex', en: 'Codex desktop' }, subAgent: { fr: 'Sous-agent', en: 'Subagent' }, subAgentReview: { fr: 'Sous-agent de revue', en: 'Review subagent' }, subAgentCompact: { fr: 'Sous-agent compact', en: 'Compact subagent' }, subAgentThreadSpawn: { fr: 'Sous-agent lancé', en: 'Spawned subagent' }, subAgentOther: { fr: 'Autre sous-agent', en: 'Other subagent' }, unknown: { fr: 'Origine inconnue', en: 'Unknown source' } };
-L.efforts = { low: { fr: 'faible', en: 'low' }, medium: { fr: 'moyen', en: 'medium' }, high: { fr: 'élevé', en: 'high' }, xhigh: { fr: 'très élevé', en: 'extra high' }, max: { fr: 'maximum', en: 'maximum' }, ultra: { fr: 'ultra', en: 'ultra' } };
-function t(key, params) { return Fremkit.t(L[key] || L.unknown, params); }
-function sourceLabel(kind) { return Fremkit.t(L.sourceKinds[kind] || L.sourceKinds.unknown); }
-function effortLabel(effort) { return Fremkit.t(L.efforts[effort] || { fr: effort, en: effort }); }
-function esc(value) { return Fremkit.esc(value); }
-function date(value, seconds) { return value == null ? t('unknown') : new Date(value * (seconds ? 1000 : 1)).toLocaleString(Fremkit.locale === 'fr' ? 'fr-FR' : 'en-GB'); }
-function status(part) { if (!part)
-    return t('loading'); if (part.error === 'unconfigured')
-    return t('historyOptIn'); var text = []; if (part.freshness === 'stale')
-    text.push(t('stale')); if (part.error)
-    text.push(t(part.error)); if (part.updatedAt != null)
-    text.push(t('updated') + ': ' + date(part.updatedAt, false)); return text.join(' · '); }
-function set(id, text) { document.getElementById(id).textContent = text; }
-function resize() { document.documentElement.style.setProperty('--h', Fremkit.size.px.height + 'px'); render(); }
-var feedbackKey = '', actionRevision = 0;
-function canOpen(thread, part) { return !!thread && thread.navigation === 'localChat' && part.freshness === 'fresh' && part.updatedAt != null && Date.now() - part.updatedAt <= 120000; }
-function duration(ms) { var sec = Math.max(0, Math.floor(ms / 1000)), m = Math.floor(sec / 60); if (sec < 60)
-    return sec + ' s'; if (m < 60)
-    return m + ' min'; var h = Math.floor(m / 60); if (h < 24)
-    return h + ' h ' + m % 60 + ' min'; return Math.floor(h / 24) + (Fremkit.locale === 'fr' ? ' j ' : ' d ') + h % 24 + ' h'; }
-function observation(id) { return observations && observations.sessions && observations.sessions.find(function (s) { return s.id === id; }); }
-function stateOf(s) { if (!s)
-    return 'unknown'; if (observations.error || observations.updatedAt == null || Date.now() - observations.updatedAt > 15000)
-    return 'unknown'; return s.state || 'unknown'; }
-function elapsedFor(s, state) { var end = s.finishedAt != null ? s.finishedAt : state === 'working' || state === 'waiting' ? Date.now() : s.lastEventAt; return s.durationMs != null ? s.durationMs : s.startedAt != null && end != null ? Math.max(0, end - s.startedAt) : null; }
-function metaFor(s) { if (!s)
-    return ''; var state = stateOf(s), elapsed = elapsedFor(s, state); return '<span class="details"><span class="state ' + esc(state) + '">' + esc(t(state === 'unknown' ? 'unknownActivity' : state)) + '</span>' + (elapsed == null ? '' : '<span class="elapsed">' + esc(t('turn', { n: duration(elapsed) })) + '</span>') + '</span><span class="details"><span class="model" title="' + esc(t(s.modelSource === 'turn' ? 'turnModel' : 'savedModel')) + '">' + esc(s.model || t('noModel')) + '</span>' + (s.effort ? '<span>' + esc(t('thinking', { n: effortLabel(s.effort) })) + '</span>' : '') + '</span>'; }
-function renderAgents() { var s = expandedId && observation(expandedId), panel = document.getElementById('agents'); panel.hidden = !s || !visibleThread(expandedId); if (panel.hidden)
-    return; var parent = snapshot && snapshot.history && snapshot.history.data && snapshot.history.data.threads.find(function (p) { return p.id === s.id; }); set('agentsTitle', (parent && parent.title || t('untitled')) + ' · ' + (s.agentsTruncated ? t('agentsShown', { n: s.subagents.length, total: s.subagentCount || s.subagents.length }) : t('agentCount', { n: s.subagents.length }))); set('closeAgents', t('close')); document.getElementById('agentList').innerHTML = s.subagents.map(function (a) { return '<div class="agent"><strong>' + esc(a.agentName || a.nickname || a.role || t('untitled')) + '</strong>' + (a.nickname || a.role ? '<span class="role">' + esc([a.nickname, a.role].filter(Boolean).join(' · ')) + '</span>' : '') + metaFor(a) + '</div>'; }).join(''); set('agentsNote', s.agentsTruncated ? t('moreAgents') : ''); }
-function repoFor(thread) { var o = observation(thread.id); if (o && typeof o.project === 'string' && o.project)
-    return { key: 'directory:' + o.project, name: o.project }; return { key: 'unknown', name: t('unknownProject') }; }
-function repoGroups(threads) { var groups = [], byKey = Object.create(null); threads.slice(0, MAX_SESSIONS).forEach(function (thread) { var repo = repoFor(thread), group = byKey[repo.key]; if (!group) {
-    group = { key: repo.key, name: repo.name, threads: [] };
-    byKey[repo.key] = group;
-    groups.push(group);
-} group.threads.push(thread); }); return groups; }
-function visibleThread(id) { var part = snapshot && snapshot.history, thread = part && part.data && part.data.threads.slice(0, MAX_SESSIONS).find(function (item) { return item.id === id; }); return thread && !collapsedGroups[repoFor(thread).key] ? thread : null; }
-function focusedCard(list) { var active = document.activeElement; if (!active || !list.contains || !list.contains(active))
-    return null; for (var attrs = ['data-group', 'data-parent', 'data-id'], i = 0; i < attrs.length; i++) {
-    var value = active.getAttribute && active.getAttribute(attrs[i]);
-    if (value != null)
-        return { attr: attrs[i], value: value };
-} return null; }
-function restoreCardFocus(list, focus) { if (!focus || !list.querySelectorAll)
-    return; var visible = focus.attr === 'data-group' || visibleThread(focus.value), matches = list.querySelectorAll('button[' + focus.attr + ']'); if (visible)
-    for (var i = 0; i < matches.length; i++)
-        if (matches[i].getAttribute(focus.attr) === focus.value && !matches[i].disabled) {
-            matches[i].focus({ preventScroll: true });
-            return;
-        } if (focus.attr !== 'data-group') {
-    var part = snapshot && snapshot.history, thread = part && part.data && part.data.threads.find(function (item) { return item.id === focus.value; });
-    if (thread)
-        restoreCardFocus(list, { attr: 'data-group', value: repoFor(thread).key });
-} }
-function renderCard(thread, part) { var enabled = canOpen(thread, part), title = thread.title == null ? t('untitled') : thread.title, o = observation(thread.id), agents = o && o.subagents || [], count = o && o.subagentCount != null ? o.subagentCount : agents.length, where = o && [o.project, o.branch].filter(Boolean).join(' @ '); return '<div class="card' + (count ? ' has-agents' : '') + '"><button type="button" class="row" data-id="' + esc(thread.id) + '" title="' + esc(title) + '"' + (enabled ? '' : ' disabled') + '><span class="body"><span class="title">' + esc(title) + '</span>' + (o ? metaFor(o) + '<span class="meta where">' + esc(where || '') + '</span>' : '<span class="meta">' + esc(date(thread.updatedAt, true)) + '</span>') + '</span><span class="card-footer"><span class="meta source">' + esc(t('source')) + ': ' + esc(sourceLabel(thread.sourceKind)) + '</span><span class="action">' + esc(t(enabled ? 'open' : 'unavailable')) + ' ↗</span></span></button>' + (count ? '<button class="agent-toggle" data-parent="' + esc(thread.id) + '" aria-expanded="' + (expandedId === thread.id) + '" aria-controls="agents">' + esc(t(count === 1 ? 'agentOne' : 'agentCount', { n: count })) + '</button>' : '') + '</div>'; }
-function render() {
-    document.documentElement.lang = Fremkit.locale;
-    var part = snapshot && snapshot.history, data = part && part.data, threads = data && data.threads || [], hasObserved = observations && observations.updatedAt != null;
-    set('kind', t(hasObserved ? 'sessions' : 'history') + ' · ' + Math.min(threads.length, MAX_SESSIONS));
-    set('context', t(hasObserved ? 'observed' : 'unknownContext'));
-    set('status', status(part) + (observations && observations.error ? ' · ' + t('observationFailure') : ''));
-    set('error', feedbackKey ? t(feedbackKey) : '');
-    document.getElementById('error').hidden = !feedbackKey;
-    set('compact', !part ? t('loading') : part.freshness !== 'fresh' ? status(part) || t('unknown') : data ? t(hasObserved ? 'sessions' : 'history') + ': ' + threads.length : t(part.error));
-    var list = document.getElementById('list'), focus = focusedCard(list);
-    list.innerHTML = repoGroups(threads).map(function (group, i) { var collapsed = !!collapsedGroups[group.key], panel = 'repo-cards-' + i; return '<section class="repo-group"><button class="repo-head" data-group="' + esc(group.key) + '" aria-expanded="' + (!collapsed) + '" aria-controls="' + panel + '"><svg class="repo-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h4l3 3h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="repo-name">' + esc(group.name) + '</span><span class="repo-count">' + esc(t(group.threads.length === 1 ? 'repoSession' : 'repoSessions', { n: group.threads.length })) + '</span><span class="repo-caret" aria-hidden="true">' + (collapsed ? '▸' : '▾') + '</span></button><div class="repo-cards" id="' + panel + '"' + (collapsed ? ' hidden' : '') + '>' + group.threads.map(function (thread) { return renderCard(thread, part); }).join('') + '</div></section>'; }).join('');
-    restoreCardFocus(list, focus);
-    set('empty', !part ? t('loading') : part.error === 'unconfigured' ? '' : !data ? t(part.error) : threads.length ? '' : t(part.freshness === 'fresh' ? 'empty' : 'staleEmpty'));
-    set('more', data ? (threads.length > MAX_SESSIONS ? t('shown', { n: MAX_SESSIONS, total: threads.length }) + ' · ' : '') + (data.truncated ? t('more') : '') : '');
-    renderAgents();
-}
-function refreshLive() {
-    var list = document.getElementById('list'), part = snapshot && snapshot.history;
-    if (!part || !list.querySelectorAll)
-        return;
-    var buttons = list.querySelectorAll('button[data-id]');
-    for (var i = 0; i < buttons.length; i++) {
-        var button = buttons[i], id = button.getAttribute('data-id');
-        var thread = part.data && part.data.threads.find(function (item) { return item.id === id; });
-        var enabled = canOpen(thread, part), action = button.querySelector('.action');
-        button.disabled = !enabled;
-        if (action)
-            action.textContent = t(enabled ? 'open' : 'unavailable') + ' ↗';
-        var observed = observation(id), state = button.querySelector('.state'), elapsed = button.querySelector('.elapsed');
-        if (observed && state) {
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Codex sessions</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        color: var(--on-surface, var(--text, #e6e8eb));
+        font-family: var(--font, system-ui, sans-serif);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .wrap {
+        height: 100%;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .section {
+        font-size: calc(13px * var(--text-scale, 1));
+        font-weight: 650;
+      }
+      .note,
+      .status,
+      .meta {
+        font-size: calc(12px * var(--text-scale, 1));
+        line-height: 1.35;
+      }
+      .note,
+      .meta {
+        color: var(--text-muted, currentColor);
+      }
+      #context {
+        font-size: calc(11px * var(--text-scale, 1));
+      }
+      .status {
+        padding-left: 8px;
+        border-left: 2px solid var(--accent, currentColor);
+      }
+      #error {
+        font-weight: 650;
+      }
+      #empty:empty,
+      #more:empty,
+      #status:empty {
+        display: none;
+      }
+      .list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+      }
+      .repo-group {
+        margin-bottom: 14px;
+      }
+      .repo-head {
+        width: 100%;
+        min-height: calc(44px * var(--text-scale, 1));
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: left;
+        border: 1px solid var(--text-muted, #485058);
+        border-radius: 10px;
+        background: rgba(128, 128, 128, 0.05);
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .repo-head:focus-visible,
+      .row:focus-visible,
+      .agent-toggle:focus-visible,
+      .close-agents:focus-visible {
+        outline: 2px solid var(--accent, currentColor);
+        outline-offset: -2px;
+      }
+      .repo-folder {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        color: var(--accent, currentColor);
+      }
+      .repo-name {
+        font-size: calc(17px * var(--text-scale, 1));
+        font-weight: 650;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .repo-count {
+        padding: 3px 8px;
+        border-radius: 16px;
+        background: rgba(128, 128, 128, 0.12);
+        font-size: calc(12px * var(--text-scale, 1));
+        white-space: nowrap;
+      }
+      .repo-caret {
+        margin-left: auto;
+        opacity: 0.7;
+      }
+      .repo-cards {
+        padding: 8px 2px 2px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+        grid-auto-rows: calc(128px * var(--text-scale, 1));
+        gap: 8px;
+      }
+      .card {
+        position: relative;
+        min-width: 0;
+        height: calc(128px * var(--text-scale, 1));
+      }
+      .row {
+        width: 100%;
+        height: 100%;
+        min-height: 56px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        border: 1px solid var(--text-muted, #485058);
+        border-radius: 10px;
+        background: rgba(128, 128, 128, 0.1);
+        color: inherit;
+        font: inherit;
+        text-align: left;
+      }
+      .row:not(:disabled) {
+        cursor: pointer;
+      }
+      .row:disabled {
+        opacity: 0.8;
+      }
+      .row:not(:disabled):hover {
+        background: rgba(128, 128, 128, 0.18);
+      }
+      .body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .title {
+        display: -webkit-box;
+        margin: 0;
+        overflow: hidden;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        font-size: calc(16px * var(--text-scale, 1));
+        line-height: 1.25;
+        font-weight: 650;
+      }
+      .has-agents .title {
+        padding-right: calc(84px * var(--text-scale, 1));
+      }
+      .details {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: calc(12px * var(--text-scale, 1));
+        line-height: 1.3;
+      }
+      .model {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--ok, #2fb36b);
+        font-weight: 650;
+      }
+      .where,
+      .source {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .state {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: rgba(128, 128, 128, 0.12);
+        font-size: calc(11px * var(--text-scale, 1));
+      }
+      .state.working {
+        color: var(--ok, #2fb36b);
+      }
+      .state.waiting {
+        color: var(--warn, #f0a020);
+      }
+      .state.done {
+        color: var(--accent, #7eaeeb);
+      }
+      .state.error {
+        color: var(--danger, #d9463f);
+      }
+      .state.unknown {
+        opacity: 0.65;
+      }
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .action {
+        flex-shrink: 0;
+        color: var(--accent, currentColor);
+        font-size: calc(12px * var(--text-scale, 1));
+      }
+      html.accent-fill .action,
+      html.accent-fill .agent-toggle {
+        color: var(--on-accent, #101418);
+      }
+      .agent-toggle {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: calc(82px * var(--text-scale, 1));
+        min-height: 44px;
+        border: 1px solid var(--accent, currentColor);
+        border-radius: 8px;
+        background: var(--accent, #d9b36a);
+        color: var(--on-accent, #101418);
+        font: inherit;
+        font-size: calc(12px * var(--text-scale, 1));
+        cursor: pointer;
+      }
+      .agents-panel {
+        position: absolute;
+        inset: auto 12px 12px;
+        z-index: 4;
+        max-height: 70%;
+        overflow: auto;
+        padding: 16px;
+        border: 1px solid var(--accent, currentColor);
+        border-radius: 12px;
+        background: var(--surface, #171c22);
+        color: var(--text, #e6e8eb);
+        box-shadow: 0 8px 40px #0008;
+      }
+      .agents-panel .note {
+        color: var(--text-muted, #a1a8b0);
+      }
+      .agents-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      .agents-head h2 {
+        margin: 0;
+        font-size: calc(18px * var(--text-scale, 1));
+      }
+      .close-agents {
+        min-height: 44px;
+        min-width: 80px;
+        border: 1px solid var(--text-muted, #485058);
+        border-radius: 8px;
+        background: var(--surface-2, #242b31);
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .agent-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 8px;
+      }
+      .agent {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        border-radius: 8px;
+        background: rgba(128, 128, 128, 0.1);
+      }
+      .agent strong {
+        font-size: calc(14px * var(--text-scale, 1));
+        overflow-wrap: anywhere;
+      }
+      .agent .role {
+        font-size: calc(12px * var(--text-scale, 1));
+        opacity: 0.7;
+      }
+      .cwrap {
+        display: none;
+        align-items: center;
+      }
+      .cvalue {
+        font-size: calc(var(--h, 80px) * 0.22 * var(--text-scale, 1));
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      html.compact .wrap {
+        padding: 0 10px;
+        justify-content: center;
+      }
+      html.compact .full {
+        display: none;
+      }
+      html.compact .cwrap {
+        display: flex;
+      }
+      html.compact.slot-right .cwrap {
+        justify-content: flex-end;
+        text-align: right;
+      }
+      html.accent-fill .note,
+      html.accent-fill .meta {
+        color: var(--on-surface, currentColor);
+        opacity: 0.75;
+      }
+      html.accent-fill .card .state,
+      html.accent-fill .card .model,
+      html.accent-fill .repo-folder {
+        color: var(--on-surface, currentColor);
+      }
+      html.accent-fill .status {
+        border-left-color: var(--on-surface, currentColor);
+      }
+      html.accent-fill .repo-head,
+      html.accent-fill .row,
+      html.accent-fill .agent-toggle {
+        border-color: var(--on-surface, currentColor);
+      }
+      html.accent-fill .repo-head:focus-visible,
+      html.accent-fill .row:focus-visible,
+      html.accent-fill .agent-toggle:focus-visible,
+      html.accent-fill .close-agents:focus-visible {
+        outline-color: var(--on-surface, currentColor);
+      }
+      html.accent-fill .agents-panel .note {
+        color: var(--text-muted, #a1a8b0);
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="full section" id="kind"></div>
+      <div class="full note" id="context"></div>
+      <div
+        class="full status"
+        id="status"
+        role="status"
+        aria-live="polite"
+      ></div>
+      <div
+        class="status"
+        id="error"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <div class="full list" id="list"></div>
+      <div class="full note" id="empty"></div>
+      <div class="full note" id="more"></div>
+      <div class="cwrap">
+        <span class="cvalue" id="compact" role="status"></span>
+      </div>
+    </div>
+    <section id="agents" class="agents-panel" role="region" hidden>
+      <div class="agents-head">
+        <h2 id="agentsTitle"></h2>
+        <button id="closeAgents" class="close-agents"></button>
+      </div>
+      <div id="agentList" class="agent-list"></div>
+      <div id="agentsNote" class="note"></div>
+    </section>
+    <script>
+      var L = {
+        loading: {
+          fr: "Chargement…",
+          en: "Loading…",
+        },
+        unconfigured: {
+          fr: "Non configuré",
+          en: "Not configured",
+        },
+        unauthorized: {
+          fr: "Autorisation du compte requise",
+          en: "Account authorization required",
+        },
+        unsupported: {
+          fr: "Méthode non prise en charge",
+          en: "Method unsupported",
+        },
+        offline: {
+          fr: "Hors ligne",
+          en: "Offline",
+        },
+        invalid: {
+          fr: "Données fournisseur invalides",
+          en: "Invalid provider data",
+        },
+        unknown: {
+          fr: "Inconnu",
+          en: "Unknown",
+        },
+        stale: {
+          fr: "Données anciennes",
+          en: "Stale",
+        },
+        updated: {
+          fr: "Mis à jour",
+          en: "Updated",
+        },
+        history: {
+          fr: "Historique",
+          en: "History",
+        },
+        unknownContext: {
+          fr: "Répertoire inconnu · Activité live inconnue",
+          en: "Unknown directory · Live activity unknown",
+        },
+        empty: {
+          fr: "Aucun historique enregistré",
+          en: "No stored history",
+        },
+        staleEmpty: {
+          fr: "Historique vide en cache",
+          en: "Cached empty history",
+        },
+        untitled: {
+          fr: "Sans titre",
+          en: "Untitled",
+        },
+        unavailable: {
+          fr: "Ouverture indisponible",
+          en: "Opening unavailable",
+        },
+        open: {
+          fr: "Ouvrir",
+          en: "Open",
+        },
+        openFailed: {
+          fr: "Impossible d’ouvrir cette session enregistrée",
+          en: "Could not open this stored session",
+        },
+        more: {
+          fr: "Plus d’historique disponible",
+          en: "More history available",
+        },
+        shown: {
+          fr: "Affichage de {n} sur {total}",
+          en: "Showing {n} of {total}",
+        },
+      };
+      L.opening = { fr: "Ouverture sur le Mac…", en: "Opening on the Mac…" };
+      L.openOk = {
+        fr: "Session ouverte sur le Mac",
+        en: "Session opened on the Mac",
+      };
+      L.source = { fr: "Source", en: "Source" };
+      L.sessions = { fr: "Sessions", en: "Sessions" };
+      L.working = { fr: "En travail", en: "Working" };
+      L.waiting = { fr: "Attend une réponse", en: "Waiting for input" };
+      L.done = { fr: "Terminé", en: "Finished" };
+      L.interrupted = { fr: "Interrompu", en: "Interrupted" };
+      L.error = { fr: "Erreur", en: "Error" };
+      L.unknownActivity = { fr: "Activité inconnue", en: "Unknown activity" };
+      L.thinking = { fr: "réflexion {n}", en: "thinking {n}" };
+      L.agentCount = { fr: "{n} agents", en: "{n} agents" };
+      L.agentOne = { fr: "1 agent", en: "1 agent" };
+      L.close = { fr: "Fermer", en: "Close" };
+      L.turn = { fr: "Tour : {n}", en: "Turn: {n}" };
+      L.age = { fr: "Dernière activité : {n}", en: "Last activity: {n}" };
+      L.noModel = { fr: "Modèle ?", en: "Model ?" };
+      L.savedModel = {
+        fr: "Dernier modèle enregistré",
+        en: "Last recorded model",
+      };
+      L.turnModel = {
+        fr: "Modèle observé pour ce tour",
+        en: "Model observed for this turn",
+      };
+      L.observationFailure = {
+        fr: "Suivi indisponible",
+        en: "Tracking unavailable",
+      };
+      L.moreAgents = {
+        fr: "Liste des agents partielle",
+        en: "Partial agent list",
+      };
+      L.agentsShown = {
+        fr: "{n} sur {total} agents",
+        en: "{n} of {total} agents",
+      };
+      var snapshot = null,
+        observations = null,
+        expandedId = null;
+      var MAX_SESSIONS = 50;
+      var collapsedGroups = Object.create(null);
+      L.unknownProject = { fr: "Répertoire inconnu", en: "Unknown directory" };
+      L.repoSessions = { fr: "{n} sessions", en: "{n} sessions" };
+      L.repoSession = { fr: "1 session", en: "1 session" };
+      L.historyOptIn = {
+        fr: "Activer les sources d’historique Codex dans Réglages de l’écran → Confidentialité (Fremkit 0.3.0)",
+        en: "Enable Codex history sources in Screen settings → Privacy (Fremkit 0.3.0)",
+      };
+      L.refused = { fr: "Accès refusé", en: "Access denied" };
+      L.sourceKinds = {
+        cli: { fr: "CLI", en: "CLI" },
+        vscode: { fr: "VS Code", en: "VS Code" },
+        exec: { fr: "Exécution", en: "Exec" },
+        appServer: { fr: "Application Codex", en: "Codex desktop" },
+        subAgent: { fr: "Sous-agent", en: "Subagent" },
+        subAgentReview: { fr: "Sous-agent de revue", en: "Review subagent" },
+        subAgentCompact: { fr: "Sous-agent compact", en: "Compact subagent" },
+        subAgentThreadSpawn: { fr: "Sous-agent lancé", en: "Spawned subagent" },
+        subAgentOther: { fr: "Autre sous-agent", en: "Other subagent" },
+        unknown: { fr: "Origine inconnue", en: "Unknown source" },
+      };
+      L.efforts = {
+        low: { fr: "faible", en: "low" },
+        medium: { fr: "moyenne", en: "medium" },
+        high: { fr: "élevée", en: "high" },
+        xhigh: { fr: "très élevée", en: "extra high" },
+        max: { fr: "maximale", en: "maximum" },
+        ultra: { fr: "ultra", en: "ultra" },
+      };
+      function t(key, params) {
+        return Fremkit.t(L[key] || L.unknown, params);
+      }
+      function sourceLabel(kind) {
+        return Fremkit.t(L.sourceKinds[kind] || L.sourceKinds.unknown);
+      }
+      function effortLabel(effort) {
+        return Fremkit.t(L.efforts[effort] || { fr: effort, en: effort });
+      }
+      function esc(value) {
+        return Fremkit.esc(value);
+      }
+      function date(value, seconds) {
+        return value == null
+          ? t("unknown")
+          : new Date(value * (seconds ? 1000 : 1)).toLocaleString(
+              Fremkit.locale === "fr" ? "fr-FR" : "en-GB",
+            );
+      }
+      function status(part) {
+        if (!part) return t("loading");
+        if (part.error === "unconfigured") return t("historyOptIn");
+        var text = [];
+        if (part.freshness === "stale") text.push(t("stale"));
+        if (part.error) text.push(t(part.error));
+        if (part.freshness === "stale" && part.updatedAt != null) {
+          text.push(t("updated") + ": " + date(part.updatedAt, false));
+        }
+        return text.join(" · ");
+      }
+      function set(id, text) {
+        document.getElementById(id).textContent = text;
+      }
+      function resize() {
+        document.documentElement.style.setProperty(
+          "--h",
+          Fremkit.size.px.height + "px",
+        );
+        render();
+      }
+      var feedbackKey = "",
+        actionRevision = 0;
+      function canOpen(thread, part) {
+        return (
+          !!thread &&
+          thread.navigation === "localChat" &&
+          part.freshness === "fresh" &&
+          part.updatedAt != null &&
+          Date.now() - part.updatedAt <= 120000
+        );
+      }
+      function duration(ms) {
+        var sec = Math.max(0, Math.floor(ms / 1000)),
+          m = Math.floor(sec / 60);
+        if (sec < 60) return sec + " s";
+        if (m < 60) return m + " min";
+        var h = Math.floor(m / 60);
+        if (h < 24) return h + " h " + (m % 60) + " min";
+        return (
+          Math.floor(h / 24) +
+          (Fremkit.locale === "fr" ? " j " : " d ") +
+          (h % 24) +
+          " h"
+        );
+      }
+      function observation(id) {
+        return (
+          observations &&
+          observations.sessions &&
+          observations.sessions.find(function (s) {
+            return s.id === id;
+          })
+        );
+      }
+      function stateOf(s) {
+        if (!s) return "unknown";
+        if (
+          observations.error ||
+          observations.updatedAt == null ||
+          Date.now() - observations.updatedAt > 15000
+        )
+          return "unknown";
+        return s.state || "unknown";
+      }
+      function elapsedFor(s, state) {
+        var end =
+          s.finishedAt != null
+            ? s.finishedAt
+            : state === "working" || state === "waiting"
+              ? Date.now()
+              : s.lastEventAt;
+        return s.durationMs != null
+          ? s.durationMs
+          : s.startedAt != null && end != null
+            ? Math.max(0, end - s.startedAt)
+            : null;
+      }
+      function metaFor(s) {
+        if (!s) return "";
+        var state = stateOf(s),
+          elapsed = elapsedFor(s, state);
+        return (
+          '<span class="details"><span class="state ' +
+          esc(state) +
+          '">' +
+          esc(t(state === "unknown" ? "unknownActivity" : state)) +
+          "</span>" +
+          (elapsed == null
+            ? ""
+            : '<span class="elapsed">' +
+              esc(t("turn", { n: duration(elapsed) })) +
+              "</span>") +
+          '</span><span class="details"><span class="model" title="' +
+          esc(t(s.modelSource === "turn" ? "turnModel" : "savedModel")) +
+          '">' +
+          esc(s.model || t("noModel")) +
+          "</span>" +
+          (s.effort
+            ? "<span>" +
+              esc(t("thinking", { n: effortLabel(s.effort) })) +
+              "</span>"
+            : "") +
+          "</span>"
+        );
+      }
+      function renderAgents() {
+        var s = expandedId && observation(expandedId),
+          panel = document.getElementById("agents");
+        panel.hidden = !s || !visibleThread(expandedId);
+        if (panel.hidden) return;
+        var parent =
+          snapshot &&
+          snapshot.history &&
+          snapshot.history.data &&
+          snapshot.history.data.threads.find(function (p) {
+            return p.id === s.id;
+          });
+        set(
+          "agentsTitle",
+          ((parent && parent.title) || t("untitled")) +
+            " · " +
+            (s.agentsTruncated
+              ? t("agentsShown", {
+                  n: s.subagents.length,
+                  total: s.subagentCount || s.subagents.length,
+                })
+              : t("agentCount", { n: s.subagents.length })),
+        );
+        set("closeAgents", t("close"));
+        document.getElementById("agentList").innerHTML = s.subagents
+          .map(function (a) {
+            return (
+              '<div class="agent"><strong>' +
+              esc(a.agentName || a.nickname || a.role || t("untitled")) +
+              "</strong>" +
+              (a.nickname || a.role
+                ? '<span class="role">' +
+                  esc([a.nickname, a.role].filter(Boolean).join(" · ")) +
+                  "</span>"
+                : "") +
+              metaFor(a) +
+              "</div>"
+            );
+          })
+          .join("");
+        set("agentsNote", s.agentsTruncated ? t("moreAgents") : "");
+      }
+      function repoFor(thread) {
+        var o = observation(thread.id);
+        if (o && typeof o.project === "string" && o.project)
+          return { key: "directory:" + o.project, name: o.project };
+        return { key: "unknown", name: t("unknownProject") };
+      }
+      function repoGroups(threads) {
+        var groups = [],
+          byKey = Object.create(null);
+        threads.slice(0, MAX_SESSIONS).forEach(function (thread) {
+          var repo = repoFor(thread),
+            group = byKey[repo.key];
+          if (!group) {
+            group = { key: repo.key, name: repo.name, threads: [] };
+            byKey[repo.key] = group;
+            groups.push(group);
+          }
+          group.threads.push(thread);
+        });
+        return groups;
+      }
+      function visibleThread(id) {
+        var part = snapshot && snapshot.history,
+          thread =
+            part &&
+            part.data &&
+            part.data.threads.slice(0, MAX_SESSIONS).find(function (item) {
+              return item.id === id;
+            });
+        return thread && !collapsedGroups[repoFor(thread).key] ? thread : null;
+      }
+      function focusedCard(list) {
+        var active = document.activeElement;
+        if (!active || !list.contains || !list.contains(active)) return null;
+        for (
+          var attrs = ["data-group", "data-parent", "data-id"], i = 0;
+          i < attrs.length;
+          i++
+        ) {
+          var value = active.getAttribute && active.getAttribute(attrs[i]);
+          if (value != null) return { attr: attrs[i], value: value };
+        }
+        return null;
+      }
+      function restoreCardFocus(list, focus) {
+        if (!focus || !list.querySelectorAll) return;
+        var visible = focus.attr === "data-group" || visibleThread(focus.value),
+          matches = list.querySelectorAll("button[" + focus.attr + "]");
+        if (visible)
+          for (var i = 0; i < matches.length; i++)
+            if (
+              matches[i].getAttribute(focus.attr) === focus.value &&
+              !matches[i].disabled
+            ) {
+              matches[i].focus({ preventScroll: true });
+              return;
+            }
+        if (focus.attr !== "data-group") {
+          var part = snapshot && snapshot.history,
+            thread =
+              part &&
+              part.data &&
+              part.data.threads.find(function (item) {
+                return item.id === focus.value;
+              });
+          if (thread)
+            restoreCardFocus(list, {
+              attr: "data-group",
+              value: repoFor(thread).key,
+            });
+        }
+      }
+      function renderCard(thread, part) {
+        var enabled = canOpen(thread, part),
+          title = thread.title == null ? t("untitled") : thread.title,
+          o = observation(thread.id),
+          agents = (o && o.subagents) || [],
+          count =
+            o && o.subagentCount != null ? o.subagentCount : agents.length,
+          where = o && [o.project, o.branch].filter(Boolean).join(" @ ");
+        return (
+          '<div class="card' +
+          (count ? " has-agents" : "") +
+          '"><button type="button" class="row" data-id="' +
+          esc(thread.id) +
+          '" title="' +
+          esc(title) +
+          '"' +
+          (enabled ? "" : " disabled") +
+          '><span class="body"><span class="title">' +
+          esc(title) +
+          "</span>" +
+          (o
+            ? metaFor(o) +
+              '<span class="meta where">' +
+              esc(where || "") +
+              "</span>"
+            : '<span class="meta">' +
+              esc(date(thread.updatedAt, true)) +
+              "</span>") +
+          '</span><span class="card-footer"><span class="meta source">' +
+          esc(t("source")) +
+          ": " +
+          esc(sourceLabel(thread.sourceKind)) +
+          '</span><span class="action">' +
+          esc(t(enabled ? "open" : "unavailable")) +
+          " ↗</span></span></button>" +
+          (count
+            ? '<button class="agent-toggle" data-parent="' +
+              esc(thread.id) +
+              '" aria-expanded="' +
+              (expandedId === thread.id) +
+              '" aria-controls="agents">' +
+              esc(t(count === 1 ? "agentOne" : "agentCount", { n: count })) +
+              "</button>"
+            : "") +
+          "</div>"
+        );
+      }
+      function render() {
+        document.documentElement.lang = Fremkit.locale;
+        var part = snapshot && snapshot.history,
+          data = part && part.data,
+          threads = (data && data.threads) || [],
+          hasObserved = observations && observations.updatedAt != null;
+        set(
+          "kind",
+          t(hasObserved ? "sessions" : "history") +
+            " · " +
+            Math.min(threads.length, MAX_SESSIONS),
+        );
+        set("context", hasObserved ? "" : t("unknownContext"));
+        document.getElementById("context").hidden = hasObserved;
+        set(
+          "status",
+          status(part) +
+            (observations && observations.error
+              ? " · " + t("observationFailure")
+              : ""),
+        );
+        set("error", feedbackKey ? t(feedbackKey) : "");
+        document.getElementById("error").hidden = !feedbackKey;
+        set(
+          "compact",
+          !part
+            ? t("loading")
+            : part.freshness !== "fresh"
+              ? status(part) || t("unknown")
+              : data
+                ? t(hasObserved ? "sessions" : "history") +
+                  ": " +
+                  threads.length
+                : t(part.error),
+        );
+        var list = document.getElementById("list"),
+          focus = focusedCard(list);
+        list.innerHTML = repoGroups(threads)
+          .map(function (group, i) {
+            var collapsed = !!collapsedGroups[group.key],
+              panel = "repo-cards-" + i;
+            return (
+              '<section class="repo-group"><button class="repo-head" data-group="' +
+              esc(group.key) +
+              '" aria-expanded="' +
+              !collapsed +
+              '" aria-controls="' +
+              panel +
+              '"><svg class="repo-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h4l3 3h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="repo-name">' +
+              esc(group.name) +
+              '</span><span class="repo-count">' +
+              esc(
+                t(group.threads.length === 1 ? "repoSession" : "repoSessions", {
+                  n: group.threads.length,
+                }),
+              ) +
+              '</span><span class="repo-caret" aria-hidden="true">' +
+              (collapsed ? "▸" : "▾") +
+              '</span></button><div class="repo-cards" id="' +
+              panel +
+              '"' +
+              (collapsed ? " hidden" : "") +
+              ">" +
+              group.threads
+                .map(function (thread) {
+                  return renderCard(thread, part);
+                })
+                .join("") +
+              "</div></section>"
+            );
+          })
+          .join("");
+        restoreCardFocus(list, focus);
+        set(
+          "empty",
+          !part
+            ? t("loading")
+            : part.error === "unconfigured"
+              ? ""
+              : !data
+                ? t(part.error)
+                : threads.length
+                  ? ""
+                  : t(part.freshness === "fresh" ? "empty" : "staleEmpty"),
+        );
+        set(
+          "more",
+          data
+            ? (threads.length > MAX_SESSIONS
+                ? t("shown", { n: MAX_SESSIONS, total: threads.length }) + " · "
+                : "") + (data.truncated ? t("more") : "")
+            : "",
+        );
+        renderAgents();
+      }
+      function refreshLive() {
+        var list = document.getElementById("list"),
+          part = snapshot && snapshot.history;
+        if (!part || !list.querySelectorAll) return;
+        var buttons = list.querySelectorAll("button[data-id]");
+        for (var i = 0; i < buttons.length; i++) {
+          var button = buttons[i],
+            id = button.getAttribute("data-id");
+          var thread =
+            part.data &&
+            part.data.threads.find(function (item) {
+              return item.id === id;
+            });
+          var enabled = canOpen(thread, part),
+            action = button.querySelector(".action");
+          button.disabled = !enabled;
+          if (action)
+            action.textContent = t(enabled ? "open" : "unavailable") + " ↗";
+          var observed = observation(id),
+            state = button.querySelector(".state"),
+            elapsed = button.querySelector(".elapsed");
+          if (observed && state) {
             var current = stateOf(observed);
-            state.className = 'state ' + current;
-            state.textContent = t(current === 'unknown' ? 'unknownActivity' : current);
+            state.className = "state " + current;
+            state.textContent = t(
+              current === "unknown" ? "unknownActivity" : current,
+            );
             var ms = elapsedFor(observed, current);
             if (elapsed && ms != null)
-                elapsed.textContent = t('turn', { n: duration(ms) });
+              elapsed.textContent = t("turn", { n: duration(ms) });
+          }
         }
-    }
-    renderAgents();
-}
-document.getElementById('list').addEventListener('click', function (event) {
-    var groupButton = event.target.closest('button[data-group]');
-    if (groupButton) {
-        var key = groupButton.getAttribute('data-group'), part = snapshot && snapshot.history, group = part && part.data && repoGroups(part.data.threads).find(function (g) { return g.key === key; });
-        if (!group)
+        renderAgents();
+      }
+      document
+        .getElementById("list")
+        .addEventListener("click", function (event) {
+          var groupButton = event.target.closest("button[data-group]");
+          if (groupButton) {
+            var key = groupButton.getAttribute("data-group"),
+              part = snapshot && snapshot.history,
+              group =
+                part &&
+                part.data &&
+                repoGroups(part.data.threads).find(function (g) {
+                  return g.key === key;
+                });
+            if (!group) return;
+            collapsedGroups[key] = !collapsedGroups[key];
+            if (
+              expandedId &&
+              group.threads.some(function (thread) {
+                return thread.id === expandedId;
+              })
+            )
+              expandedId = null;
+            ++actionRevision;
+            feedbackKey = "";
+            render();
             return;
-        collapsedGroups[key] = !collapsedGroups[key];
-        if (expandedId && group.threads.some(function (thread) { return thread.id === expandedId; }))
-            expandedId = null;
-        ++actionRevision;
-        feedbackKey = '';
-        render();
-        return;
-    }
-    var agentButton = event.target.closest('button[data-parent]');
-    if (agentButton) {
-        var selected = agentButton.getAttribute('data-parent');
-        if (!visibleThread(selected))
+          }
+          var agentButton = event.target.closest("button[data-parent]");
+          if (agentButton) {
+            var selected = agentButton.getAttribute("data-parent");
+            if (!visibleThread(selected)) return;
+            expandedId = expandedId === selected ? null : selected;
+            render();
             return;
-        expandedId = expandedId === selected ? null : selected;
-        render();
-        return;
-    }
-    var row = event.target.closest('button[data-id]');
-    if (!row)
-        return;
-    var id = row.getAttribute('data-id'), part = snapshot && snapshot.history;
-    var thread = visibleThread(id);
-    if (!canOpen(thread, part))
-        return;
-    var original = snapshot, revision = ++actionRevision;
-    feedbackKey = 'opening';
-    render();
-    var result;
-    try {
-        result = Fremkit.sendCommand('codex', 'open', { threadId: thread.id });
-    }
-    catch (_) {
-        result = Promise.reject(new Error('open failed'));
-    }
-    Promise.resolve(result).then(function (answer) { if (original !== snapshot || revision !== actionRevision)
-        return; feedbackKey = answer && answer.ok === true ? 'openOk' : 'openFailed'; render(); }, function () { if (original !== snapshot || revision !== actionRevision)
-        return; feedbackKey = 'openFailed'; render(); });
-});
-document.getElementById('closeAgents').addEventListener('click', function () { expandedId = null; render(); });
-Fremkit.whenReady(function () { Fremkit.subscribe('codex-live', function (data) { observations = data; render(); }); Fremkit.subscribe('codex', function (data) { ++actionRevision; feedbackKey = ''; snapshot = data; render(); }); Fremkit.onLocale(render); Fremkit.onResize(resize); setInterval(refreshLive, 5000); resize(); });
-</script></body></html>
+          }
+          var row = event.target.closest("button[data-id]");
+          if (!row) return;
+          var id = row.getAttribute("data-id"),
+            part = snapshot && snapshot.history;
+          var thread = visibleThread(id);
+          if (!canOpen(thread, part)) return;
+          var original = snapshot,
+            revision = ++actionRevision;
+          feedbackKey = "opening";
+          render();
+          var result;
+          try {
+            result = Fremkit.sendCommand("codex", "open", {
+              threadId: thread.id,
+            });
+          } catch (_) {
+            result = Promise.reject(new Error("open failed"));
+          }
+          Promise.resolve(result).then(
+            function (answer) {
+              if (original !== snapshot || revision !== actionRevision) return;
+              feedbackKey =
+                answer && answer.ok === true ? "openOk" : "openFailed";
+              render();
+            },
+            function () {
+              if (original !== snapshot || revision !== actionRevision) return;
+              feedbackKey = "openFailed";
+              render();
+            },
+          );
+        });
+      document
+        .getElementById("closeAgents")
+        .addEventListener("click", function () {
+          expandedId = null;
+          render();
+        });
+      Fremkit.whenReady(function () {
+        Fremkit.subscribe("codex-live", function (data) {
+          observations = data;
+          render();
+        });
+        Fremkit.subscribe("codex", function (data) {
+          ++actionRevision;
+          feedbackKey = "";
+          snapshot = data;
+          render();
+        });
+        Fremkit.onLocale(render);
+        Fremkit.onResize(resize);
+        setInterval(refreshLive, 5000);
+        resize();
+      });
+    </script>
+  </body>
+</html>
