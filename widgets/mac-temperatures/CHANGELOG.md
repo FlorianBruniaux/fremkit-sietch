@@ -1,5 +1,5 @@
 # Changelog
 
-## 1.0.0
+## 1.0.0 (2026-10-16)
 
-- Show measured average CPU/GPU temperatures, sample time and explicit unavailable or stale states. Requires macmon on Apple Silicon and the matching system provider.
+- Show the CPU temperature and its source from Fremkit 0.3.0, with guidance for missing macmon, disabled Screen privacy access and unavailable readings. Compact mode is available.

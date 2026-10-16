@@ -8,8 +8,8 @@
   "sdk": 1,
   "license": "MIT",
   "description": {
-    "fr": "Temp\u00e9ratures moyennes CPU et GPU mesur\u00e9es par macmon",
-    "en": "Measured average CPU and GPU temperatures through macmon"
+    "fr": "Température CPU mesurée par macmon ou par le système",
+    "en": "CPU temperature measured by macmon or the system"
   },
   "category": "system",
   "icon": "thermometer",
@@ -21,6 +21,9 @@
     16,
     6
   ],
+  "compact": {
+    "width": 5
+  },
   "subscriptions": [
     "system"
   ],
