@@ -1,0 +1,28 @@
+widgets/codex-sessions/index.html
+  s_e827e256e15185::t_18d4edfbe74318 40,49-51,68
+  s_e827e256e15185::t_3883ea7b2e9452 41
+tools/test/codex-sessions.test.ts
+  s_e827e256e15185::t_2b05a08eaa8428 18-19,44,47,156
+  s_e827e256e15185::t_f16518e2741ecf 25
+  s_e827e256e15185::t_f9144fb4a4a326 27-28
+  s_e827e256e15185::t_c0949911b95980 26,29-35,43,48-49,178-181
+  s_e827e256e15185::t_0f4ad724eb72bd 182
+widgets/codex-sessions/CHANGELOG.md
+  s_e827e256e15185::t_8d805b41ab96ed 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9fc05ae4ab4e6c8db4673ef1a2aee5296ae4f480",
+  "prompts": {},
+  "sessions": {
+    "s_e827e256e15185": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12567-61ab-7c62-8b43-ea0028444170",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Florian BRUNIAUX <florian@bruniaux.com>"
+    }
+  }
+}
