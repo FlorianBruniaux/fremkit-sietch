@@ -12,7 +12,7 @@ let root: string
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'themes-')) })
 
 const theme = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
-  id: 'nuit', version: '1.0.0',
+  id: 'nuit', version: '1.0.0', author: 'someone',
   name: { fr: 'Nuit', en: 'Night' },
   description: { fr: 'Sombre et bleuté', en: 'Dark and blue' },
   tokens: { accent: '#d9b36a', bg: '#0b0d10', surface: '#151a21', text: '#e6e8eb', border: '#1f2329' },
@@ -43,6 +43,12 @@ describe('limitsOf', () => {
 })
 
 describe('readThemePackage', () => {
+  it('requires an author, since the card credits one', async () => {
+    const { author: _, ...withoutAuthor } = theme({ id: 'nuit' })
+    await folder('nuit', withoutAuthor)
+    await expect(readThemePackage(root, 'nuit')).rejects.toThrow(/author is required/)
+  })
+
   it('reads a theme folder', async () => {
     await folder('nuit')
     const pkg = await readThemePackage(root, 'nuit')

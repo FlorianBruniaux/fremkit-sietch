@@ -3,8 +3,10 @@
 1. Write it against the main repository's guide,
    [docs/writing-widgets.md](https://github.com/fdussert/fremkit/blob/main/docs/writing-widgets.md),
    and run it from a local `widgets/` folder until it behaves.
-2. Give the manifest a `version` (semver) and an `sdk` (the bridge version it needs), and declare
-   every channel, command and network host it uses — nothing else is granted.
+2. Give the manifest a `version` (semver), an `sdk` (the bridge version it needs) and an `author`
+   (your handle, shown on the widget's card; `"you, them"` when two of you wrote it), and declare
+   every channel, command and network host it uses — nothing else is granted. A widget with no
+   `author` is refused.
 3. Copy the folder to `widgets/<id>/` here, `<id>` being the manifest's `id`, and open a pull
    request. The CI validates the manifest, refuses private or local network hosts, checks the
    size, and builds the index on merge.
@@ -49,7 +51,8 @@ consent to. It is the easiest thing to publish here and the safest thing to inst
    `tokens.css`, so every token a theme can set is already in it.
 2. Change `id`, `name`, `description` and the values. `id` is the folder name,
    `[a-z0-9_-]+`; `name` and `description` are `{ "fr": …, "en": … }` pairs; `version` is semver
-   and only ever goes up. `author`, `license` and `homepage` are optional and shown on the card.
+   and only ever goes up. `author` is required, your handle as on a widget; `license` and
+   `homepage` are optional. All three are shown on the card.
 3. Drop it at `themes/<id>/theme.json` here — that folder and at most a `README.md`, nothing
    else — and run `pnpm validate`.
 
