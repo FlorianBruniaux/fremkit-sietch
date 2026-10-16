@@ -241,8 +241,19 @@ export async function readThemePackage(root: string, id: string): Promise<ThemeP
   // Fremkit ships these two so a fresh install has a choice with no network, and its installer
   // refuses them; saying so here tells an author before they open a pull request.
   if (BUILTIN_THEME_IDS.has(id)) throw new ValidationError(id, 'this id belongs to a theme Fremkit ships')
+  checkAuthor(id, theme.author)
 
   return { kind: 'theme', id, version: theme.version, theme, files, changelog: changelogOf(id, files) }
+}
+
+/**
+ * A published package names whoever wrote it: that is what its card shows next to the licence.
+ * The vendored schema leaves `author` optional because a widget built into Fremkit has nobody
+ * to credit; here somebody always wrote it, and two widgets once reached the admin reading only
+ * "MIT" because a pull request left it out.
+ */
+export function checkAuthor(id: string, author: string | undefined): void {
+  if (!author?.trim()) throw new ValidationError(id, 'author is required: the handle of whoever wrote it, shown on its card')
 }
 
 /** Reads one `widgets/<id>/` folder and holds it to every rule above. */
@@ -262,6 +273,7 @@ export async function readPackage(root: string, id: string): Promise<WidgetPacka
   }
   const manifest = parsed.data
   if (manifest.id !== id) throw new ValidationError(id, `manifest id "${manifest.id}" does not match the folder`)
+  checkAuthor(id, manifest.author)
 
   // The schema already refuses the literals; saying it again keeps the rule true if the vendored
   // copy ever lags behind, and this is the one rule a widget cannot be published without.

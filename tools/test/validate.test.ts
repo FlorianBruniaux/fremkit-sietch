@@ -10,7 +10,7 @@ beforeEach(async () => { root = await mkdtemp(join(tmpdir(), 'registry-')) })
 
 const manifest = (over: Record<string, unknown> = {}) => ({
   id: 'demo', name: { fr: 'Démo', en: 'Demo' }, description: { fr: 'Une démo', en: 'A demo' },
-  version: '1.0.0', sdk: 1, minSize: [8, 4], defaultSize: [8, 4], ...over,
+  version: '1.0.0', sdk: 1, minSize: [8, 4], defaultSize: [8, 4], author: 'someone', ...over,
 })
 
 async function widget(id: string, files: Record<string, string | Buffer> = {}, m: unknown = manifest({ id })) {
@@ -156,6 +156,14 @@ describe('readPackage', () => {
     await writeFile(join(root, 'demo', 'manifest.json'), JSON.stringify(manifest({ id: 'demo' })))
     await writeFile(join(root, 'demo', 'index.html'), '<script src="https://cdn.example.com/x.js"></script>')
     await expect(readPackage(root, 'demo')).rejects.toThrow(/outside the package/)
+  })
+
+  it('requires an author, since the card credits one', async () => {
+    const { author: _, ...withoutAuthor } = manifest({ id: 'demo' })
+    await widget('demo', {}, withoutAuthor)
+    await expect(readPackage(root, 'demo')).rejects.toThrow(/author is required/)
+    await widget('demo', {}, manifest({ id: 'demo', author: '  ' }))
+    await expect(readPackage(root, 'demo')).rejects.toThrow(/author is required/)
   })
 
   it('says a missing description is missing, not mistyped', async () => {
